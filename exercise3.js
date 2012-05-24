@@ -79,17 +79,10 @@ function reversedir(dirname)
 		case "northwest":
 			return "southeast";
 		default:
-			console.log("ERR!");
+			console.log("reversedir error");
+			break;
 	}
 }
-
-/*
-function iswalkable(tile)
-{
-	if (tile != "#") return true;
-	else return false;
-}
-*/
 
 function pathflinder(orig_map,start,end)
 {
@@ -99,15 +92,15 @@ function pathflinder(orig_map,start,end)
 		map.push({});
 	}
 	map[start.y][start.x] = 0;
-	var frontier = [{dist:0,x:start.x,y:start.y}];
-	var alldirs = ["north","northeast","east","southeast","south","southwest","west","northwest"];
+	var frontier = [{dist: 0, x: start.x, y: start.y}];
+	var alldirs = ["north", "northeast", "east", "southeast", "south", "southwest", "west", "northwest"];
 	while (frontier.length > 0)
 	{
 		for (i = 0; i < alldirs.length; i++)
 		{
 			var dx = getdx(alldirs[i]);
 			var dy = getdy(alldirs[i]);
-			var visited = {dist:(map[frontier[0].y][frontier[0].x]) + 1, x:frontier[0].x + dx, y:frontier[0].y + dy};
+			var visited = {dist: (map[frontier[0].y][frontier[0].x]) + 1, x:frontier[0].x + dx, y:frontier[0].y + dy};
 			var visitedcontents = orig_map[frontier[0].y + dy][frontier[0].x + dx];
 			if ((visited.x >= 0) && (visited.y <= orig_map.length)
 					&& (visited.y >= 0) && (visited.x <= orig_map[0].length)
@@ -121,7 +114,7 @@ function pathflinder(orig_map,start,end)
 		frontier.shift();
 		frontier.sort(comparedist);
 	}
-	if (map[end.y][end.x] == "e") return false;
+	if (typeof map[end.y][end.x] == "undefined") return false;
 	var pos = end;
 	var path = [];
 	while (map[pos.y][pos.x] != 0)
@@ -141,16 +134,25 @@ function pathflinder(orig_map,start,end)
 		}
 	}
 	path = path.reverse();
+	return path;
+}
+
+function Draw_Path(path,map,start)
+{
 	var pos = start;
+	map[pos.y][pos.x] = agent;
+	DrawTile(Screen[pos.y][pos.x], Map[pos.y][pos.x]);
 	for (i = 0; i < path.length; i++)
 	{
-		orig_map[pos.y][pos.x] = agent;
 		var dx = getdx(path[i]);
 		var dy = getdy(path[i]);
-		pos = {x:pos.x + dx,y:pos.y + dy};
-		map_to_ascii_art(orig_map);
+		var nextpos = {x:pos.x + dx, y:pos.y + dy};
+		map[pos.y][pos.x] = empty;
+		DrawTile(Screen[pos.y][pos.x], Map[pos.y][pos.x]);
+		map[nextpos.y][nextpos.x] = agent;
+		DrawTile(Screen[nextpos.y][nextpos.x], Map[nextpos.y][nextpos.x]);
+		pos = nextpos;
 	}
-	return path;
 }
 
 function ascii_art_to_map(map)
@@ -172,6 +174,7 @@ function ascii_art_to_map(map)
 					break;
 				default:
 					contents = empty;
+					console.log("ascii_art_to_map error");
 					break;
 			}
 			rowarray.push(contents);
@@ -203,6 +206,7 @@ function map_to_ascii_art(map)
 					break;
 				default:
 					contents = empty;
+					console.log("map_to_ascii_art error");
 					break;
 			}
 			rowstring.push(contents);
@@ -236,19 +240,20 @@ function testmap()
 var Screen = []
 function InitScreen()
 {
-	for(var y=0; y < 20; y++)
+	for(var y=0; y < Map.length; y++)
 	{
 		var row = $('<div class="row"></div>')
 		row.appendTo('body')
 		var ColumnArray = []
-		for(var x=0; x < 20; x++)
+		for(var x=0; x < Map[0].length; x++)
 		{
 			var column = $('<div class="column"></div>');
 			(function(x,y) {
 				column.click(function(event)
 				{
-					Map[y][x].contents = wall 
-					DrawTile(Screen[y][x], Map[y][x])
+					Get_Path(x,y);
+
+					DrawTile(Screen[y][x], Map[y][x]);
 				})
 			})(x,y);
 			column.appendTo(row)
@@ -258,9 +263,25 @@ function InitScreen()
 	}
 }
 
+function Get_Path(x,y)
+{
+	if (typeof Start == "undefined")
+	{
+		Start = {x: x, y: y};
+		Map[y][x] = agent;
+	}
+	else
+	{
+		var End = {x: x, y: y};
+		var Path = pathflinder(Map, Start, End);
+		Draw_Path(Path, Map, Start)
+	}
+}
+
+
 /*Initialize the Map, the complete game board*/
-var Map = []
-function InitMap()
+var Map = ascii_art_to_map(testmap().map);
+/*function InitMap()
 {
 	for(var y=0; y < 20; y++)
 	{
@@ -274,13 +295,14 @@ function InitMap()
 		Map.push(ColumnArray)
 	}
 }
+*/
 
 /*Update the Screen with data from the Map, and draw graphics*/
 function UpdateScreen()
 {
-	for(var y=0; y < 20; y++)
+	for(var y=0; y < Map.length; y++)
 	{
-		for(var x=0; x < 20; x++)
+		for(var x=0; x < Map[0].length; x++)
 		{
 			DrawTile(Screen[y][x], Map[y][x])
 		}
@@ -290,9 +312,9 @@ function UpdateScreen()
 /*Insert the graphics from map coordinates to screen coordinates*/
 function DrawTile(screenPos, mapTile)
 {
-	screenPos.text(mapTile.contents.appearance)
+	screenPos.text(mapTile.appearance)
 }
 
+//InitMap()
 InitScreen()
-InitMap()
 UpdateScreen()
