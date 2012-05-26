@@ -1,28 +1,28 @@
-// Write a pathfinding function pathflinder(map,start,end)
+// Write a pathfinding function Pathflinder(map,start,end)
 
-var empty =
+var Empty =
 {
 	appearance: " ",
 	walkable: true
 }
 
-var wall =
+var Wall =
 {
 	appearance: "#",
 	walkable: false
 }
 
-var agent =
+var Agent =
 {
 	appearance: "@"
 }
 
-function comparedist(a,b)
+function CompareDist(a,b)
 {
 	return a.dist - b.dist;
 }
 
-function getdx(dirname)
+function Getdx(dirname)
 {
 	switch (dirname)
 	{
@@ -40,7 +40,7 @@ function getdx(dirname)
 	}
 }
 
-function getdy(dirname)
+function Getdy(dirname)
 {
 	switch (dirname)
 	{
@@ -58,7 +58,7 @@ function getdy(dirname)
 	}
 }
 
-function reversedir(dirname)
+function ReverseDir(dirname)
 {
 	switch (dirname)
 	{
@@ -79,79 +79,8 @@ function reversedir(dirname)
 		case "northwest":
 			return "southeast";
 		default:
-			console.log("reversedir error");
+			console.log("ReverseDir error");
 			break;
-	}
-}
-
-function pathflinder(orig_map,start,end)
-{
-	var map = [];
-	for (var iy = 0; iy < orig_map.length; iy++)
-	{
-		map.push({});
-	}
-	map[start.y][start.x] = 0;
-	var frontier = [{dist: 0, x: start.x, y: start.y}];
-	var alldirs = ["north", "northeast", "east", "southeast", "south", "southwest", "west", "northwest"];
-	while (frontier.length > 0)
-	{
-		for (i = 0; i < alldirs.length; i++)
-		{
-			var dx = getdx(alldirs[i]);
-			var dy = getdy(alldirs[i]);
-			var visited = {dist: (map[frontier[0].y][frontier[0].x]) + 1, x:frontier[0].x + dx, y:frontier[0].y + dy};
-			var visitedcontents = orig_map[frontier[0].y + dy][frontier[0].x + dx];
-			if ((visited.x >= 0) && (visited.y <= orig_map.length)
-					&& (visited.y >= 0) && (visited.x <= orig_map[0].length)
-					&& orig_map[frontier[0].y + dy][frontier[0].x + dx].walkable
-					&& typeof map[frontier[0].y + dy][frontier[0].x + dx] == "undefined") 
-			{
-				map[visited.y][visited.x] = visited.dist;
-				frontier.push(visited);
-			}
-		}
-		frontier.shift();
-		frontier.sort(comparedist);
-	}
-	if (typeof map[end.y][end.x] == "undefined") return false;
-	var pos = end;
-	var path = [];
-	while (map[pos.y][pos.x] != 0)
-	{
-		for (i = 0; i < alldirs.length; i++)
-		{
-			var dx = getdx(alldirs[i]);
-			var dy = getdy(alldirs[i]);
-			var nextpos = {x: pos.x + dx, y: pos.y + dy};
-			var nextposcontents = map[nextpos.y][nextpos.x]; 
-			if ((typeof nextposcontents != "undefined") && (nextposcontents < map[pos.y][pos.x]))
-			{
-				path.push(reversedir(alldirs[i]));
-				pos = nextpos;
-				break;
-			}
-		}
-	}
-	path = path.reverse();
-	return path;
-}
-
-function Draw_Path(path,map,start)
-{
-	var pos = start;
-	map[pos.y][pos.x] = agent;
-	DrawTile(Screen[pos.y][pos.x], Map[pos.y][pos.x]);
-	for (i = 0; i < path.length; i++)
-	{
-		var dx = getdx(path[i]);
-		var dy = getdy(path[i]);
-		var nextpos = {x:pos.x + dx, y:pos.y + dy};
-		map[pos.y][pos.x] = empty;
-		DrawTile(Screen[pos.y][pos.x], Map[pos.y][pos.x]);
-		map[nextpos.y][nextpos.x] = agent;
-		DrawTile(Screen[nextpos.y][nextpos.x], Map[nextpos.y][nextpos.x]);
-		pos = nextpos;
 	}
 }
 
@@ -167,13 +96,13 @@ function ascii_art_to_map(map)
 			switch (map[iy][ix])
 			{
 				case " ":
-					contents = empty;
+					contents = Empty;
 					break;
 				case "#":
-					contents = wall;
+					contents = Wall;
 					break;
 				default:
-					contents = empty;
+					contents = Empty;
 					console.log("ascii_art_to_map error");
 					break;
 			}
@@ -195,17 +124,17 @@ function map_to_ascii_art(map)
 			var contents;
 			switch (map[iy][ix])
 			{
-				case empty:
+				case Empty:
 					contents = " ";
 					break;
-				case wall:
+				case Wall:
 					contents = "#";
 					break;
-				case agent:
+				case Agent:
 					contents = "@";
 					break;
 				default:
-					contents = empty;
+					contents = Empty;
 					console.log("map_to_ascii_art error");
 					break;
 			}
@@ -237,6 +166,59 @@ function testmap()
 	return {map:map, start:start, end:end};
 }
 
+function Pathflinder(orig_map,start,end)
+{
+	var map = [];
+	for (var iy = 0; iy < orig_map.length; iy++)
+	{
+		map.push({});
+	}
+	map[start.y][start.x] = 0;
+	var frontier = [{dist: 0, x: start.x, y: start.y}];
+	var alldirs = ["north", "northeast", "east", "southeast", "south", "southwest", "west", "northwest"];
+	while (frontier.length > 0)
+	{
+		for (i = 0; i < alldirs.length; i++)
+		{
+			var dx = Getdx(alldirs[i]);
+			var dy = Getdy(alldirs[i]);
+			var visited = {dist: (map[frontier[0].y][frontier[0].x]) + 1, x:frontier[0].x + dx, y:frontier[0].y + dy};
+			var visitedcontents = orig_map[frontier[0].y + dy][frontier[0].x + dx];
+			if ((visited.x >= 0) && (visited.y <= orig_map.length)
+					&& (visited.y >= 0) && (visited.x <= orig_map[0].length)
+					&& orig_map[frontier[0].y + dy][frontier[0].x + dx].walkable
+					&& typeof map[frontier[0].y + dy][frontier[0].x + dx] == "undefined") 
+			{
+				map[visited.y][visited.x] = visited.dist;
+				frontier.push(visited);
+			}
+		}
+		frontier.shift();
+		frontier.sort(CompareDist);
+	}
+	if (typeof map[end.y][end.x] == "undefined") return false;
+	var pos = end;
+	var path = [];
+	while (map[pos.y][pos.x] != 0)
+	{
+		for (i = 0; i < alldirs.length; i++)
+		{
+			var dx = Getdx(alldirs[i]);
+			var dy = Getdy(alldirs[i]);
+			var nextpos = {x: pos.x + dx, y: pos.y + dy};
+			var nextposcontents = map[nextpos.y][nextpos.x]; 
+			if ((typeof nextposcontents != "undefined") && (nextposcontents < map[pos.y][pos.x]))
+			{
+				path.push(ReverseDir(alldirs[i]));
+				pos = nextpos;
+				break;
+			}
+		}
+	}
+	path = path.reverse();
+	return path;
+}
+
 var Screen = []
 function InitScreen()
 {
@@ -244,37 +226,34 @@ function InitScreen()
 	{
 		var row = $('<div class="row"></div>')
 		row.appendTo('body')
-		var ColumnArray = []
+		var columnarray = []
 		for(var x=0; x < Map[0].length; x++)
 		{
 			var column = $('<div class="column"></div>');
 			(function(x,y) {
 				column.click(function(event)
 				{
-					Get_Path(x,y);
-
-					DrawTile(Screen[y][x], Map[y][x]);
+					SetStartEnd(x,y);
 				})
 			})(x,y);
 			column.appendTo(row)
-			ColumnArray.push(column)
+			columnarray.push(column)
 		}
-		Screen.push(ColumnArray)
+		Screen.push(columnarray)
 	}
 }
 
-function Get_Path(x,y)
+var Start;
+var End;
+function SetStartEnd(x,y)
 {
 	if (typeof Start == "undefined")
 	{
 		Start = {x: x, y: y};
-		Map[y][x] = agent;
 	}
 	else
 	{
-		var End = {x: x, y: y};
-		var Path = pathflinder(Map, Start, End);
-		Draw_Path(Path, Map, Start)
+		End = {x: x, y: y};
 	}
 }
 
@@ -285,17 +264,28 @@ var Map = ascii_art_to_map(testmap().map);
 {
 	for(var y=0; y < 20; y++)
 	{
-		var ColumnArray = []
+		var columnarray = []
 		for(var x=0; x < 20; x++)
 		{
-			ColumnArray.push({
-				contents: empty,
+			columnarray.push({
+				contents: Empty,
 			})
 		}
-		Map.push(ColumnArray)
+		Map.push(columnarray)
 	}
 }
 */
+
+function DrawPath(path,map,start)
+{
+	var pos = start;
+	var dx = Getdx(path[0]);
+	var dy = Getdy(path[0]);
+	var nextpos = {x:pos.x + dx, y:pos.y + dy};
+	map[pos.y][pos.x] = Empty;
+	map[nextpos.y][nextpos.x] = Agent;
+	Start = nextpos;
+}
 
 /*Update the Screen with data from the Map, and draw graphics*/
 function UpdateScreen()
@@ -315,6 +305,26 @@ function DrawTile(screenPos, mapTile)
 	screenPos.text(mapTile.appearance)
 }
 
+function RunFrame()
+{
+	if ((typeof Start != "undefined") && (typeof End != "undefined") && ((Start.y != End.y) || (Start.x != End.x)))
+	{
+		var path = Pathflinder(Map,Start,End);
+		if (path) DrawPath(path,Map,Start);
+	}
+	if ((typeof Start != "undefined") && (typeof End == "undefined"))
+	{
+	Map[Start.y][Start.x] = Agent;
+	}
+}
+
+function Tick()
+{
+	RunFrame();
+	UpdateScreen();
+	setTimeout(Tick,100);
+}
+
 //InitMap()
 InitScreen()
-UpdateScreen()
+Tick()
