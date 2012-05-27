@@ -1,89 +1,4 @@
-// Write a pathfinding function Pathflinder(map,start,end)
-
-var Empty =
-{
-	appearance: " ",
-	walkable: true
-}
-
-var Wall =
-{
-	appearance: "#",
-	walkable: false
-}
-
-var Agent =
-{
-	appearance: "@"
-}
-
-function CompareDist(a,b)
-{
-	return a.dist - b.dist;
-}
-
-function Getdx(dirname)
-{
-	switch (dirname)
-	{
-		case "north":
-		case "south":
-			return 0;
-		case "northeast":
-		case "east":
-		case "southeast":
-			return 1;
-		case "southwest":
-		case "west":
-		case "northwest":
-			return -1;
-	}
-}
-
-function Getdy(dirname)
-{
-	switch (dirname)
-	{
-		case "east":
-		case "west":
-			return 0;
-		case "north":
-		case "northeast":
-		case "northwest":
-			return -1;
-		case "south":
-		case "southeast":
-		case "southwest":
-			return 1;
-	}
-}
-
-function ReverseDir(dirname)
-{
-	switch (dirname)
-	{
-		case "north":
-			return "south";
-		case "northeast":
-			return "southwest";
-		case "east":
-			return "west";
-		case "southeast":
-			return "northwest";
-		case "south":
-			return "north";
-		case "southwest":
-			return "northeast";
-		case "west":
-			return "east";
-		case "northwest":
-			return "southeast";
-		default:
-			console.log("ReverseDir error");
-			break;
-	}
-}
-
+//Test functions
 function ascii_art_to_map(map)
 {
 	var columnarray = [];
@@ -166,6 +81,75 @@ function testmap()
 	return {map:map, start:start, end:end};
 }
 
+function CompareDist(a,b)
+{
+	return a.dist - b.dist;
+}
+
+
+//Pathfinding functions
+function Getdx(dirname)
+{
+	switch (dirname)
+	{
+		case "north":
+		case "south":
+			return 0;
+		case "northeast":
+		case "east":
+		case "southeast":
+			return 1;
+		case "southwest":
+		case "west":
+		case "northwest":
+			return -1;
+	}
+}
+
+function Getdy(dirname)
+{
+	switch (dirname)
+	{
+		case "east":
+		case "west":
+			return 0;
+		case "north":
+		case "northeast":
+		case "northwest":
+			return -1;
+		case "south":
+		case "southeast":
+		case "southwest":
+			return 1;
+	}
+}
+
+function ReverseDir(dirname)
+{
+	switch (dirname)
+	{
+		case "north":
+			return "south";
+		case "northeast":
+			return "southwest";
+		case "east":
+			return "west";
+		case "southeast":
+			return "northwest";
+		case "south":
+			return "north";
+		case "southwest":
+			return "northeast";
+		case "west":
+			return "east";
+		case "northwest":
+			return "southeast";
+		default:
+			console.log("ReverseDir error");
+			break;
+	}
+}
+
 function Pathflinder(orig_map,start,end)
 {
 	var map = [];
@@ -219,50 +203,64 @@ function Pathflinder(orig_map,start,end)
 	return path;
 }
 
-var Screen = []
-function InitScreen()
+
+//Initialize
+var Empty =
 {
-	for(var y=0; y < Map.length; y++)
-	{
-		var row = $('<div class="row"></div>')
-		row.appendTo('body')
-		var columnarray = []
-		for(var x=0; x < Map[0].length; x++)
-		{
-			var column = $('<div class="column"></div>');
-			(function(x,y) {
-				column.click(function(event)
-				{
-					SetStartEnd(x,y);
-				})
-			})(x,y);
-			column.appendTo(row)
-			columnarray.push(column)
-		}
-		Screen.push(columnarray)
-	}
+	appearance: " ",
+	walkable: true
 }
 
+var Wall =
+{
+	appearance: "#",
+	walkable: false
+}
+
+var Agent =
+{
+	appearance: "@",
+	walkable: false
+}
+
+var WallSelector =
+{
+	appearance: "#",
+	select: Wall
+}
+
+var AgentSelector =
+{
+	appearance: "@",
+	select: Agent
+}
+
+var PickerSelector =
+{
+	appearance: "S",
+	select: "picker"
+}
+
+var EmptySelector =
+{
+	appearance: "X",
+	select: Empty
+}
+
+var PaletteItems = [PickerSelector, WallSelector, AgentSelector, EmptySelector];
+
+var Map;
+var Screen = [];
 var Start;
 var End;
-function SetStartEnd(x,y)
-{
-	if (typeof Start == "undefined")
-	{
-		Start = {x: x, y: y};
-	}
-	else
-	{
-		End = {x: x, y: y};
-	}
-}
+var Palette = [];
+var Selector = "picker";
 
 
-/*Initialize the Map, the complete game board*/
-var Map = ascii_art_to_map(testmap().map);
-/*function InitMap()
+function InitMap()
 {
-	for(var y=0; y < 20; y++)
+	Map = ascii_art_to_map(testmap().map);
+/*	for(var y=0; y < 20; y++)
 	{
 		var columnarray = []
 		for(var x=0; x < 20; x++)
@@ -272,10 +270,73 @@ var Map = ascii_art_to_map(testmap().map);
 			})
 		}
 		Map.push(columnarray)
+	}*/
+}
+
+function InitScreen()
+{
+	for(var y=0; y < Map.length; y++)
+	{
+		var row = $('<div class="row"></div>');
+		var mappos = $("#Map");
+		row.appendTo(mappos)
+		var columnarray = []
+		for(var x=0; x < Map[0].length; x++)
+		{
+			var column = $('<div class="column"></div>');
+			(function(x,y) {
+				column.mousedown(function(event)
+				{
+					MapInteract(x,y);
+				})
+			})(x,y);
+			column.appendTo(row);
+			columnarray.push(column);
+		}
+		Screen.push(columnarray);
 	}
 }
-*/
 
+function MapInteract(x,y)
+{
+	if (Selector == "picker")
+	{
+		if (typeof Start == "undefined")
+		{
+			Start = {x: x, y: y};
+		}
+		else
+		{
+			End = {x: x, y: y};
+		}
+	}
+	else Map[y][x] = Selector;
+}
+
+function InitPalette()
+{
+	for (var y = 0; y < PaletteItems.length; y++)
+	{
+		var row = $('<div class="row"></div>');
+		var palettepos = $("#Palette");
+		row.appendTo(palettepos);
+		(function(y) {
+			row.mousedown(function(event)
+				{
+					SetSelector(y);
+				})
+		})(y);
+		row.text(PaletteItems[y].appearance);
+	}
+}
+
+function SetSelector(y)
+{
+	Selector = PaletteItems[y].select;
+}
+
+
+//Draw one step from the path
 function DrawPath(path,map,start)
 {
 	var pos = start;
@@ -305,6 +366,7 @@ function DrawTile(screenPos, mapTile)
 	screenPos.text(mapTile.appearance)
 }
 
+//Get the path for the agent, then draw it.
 function RunFrame()
 {
 	if ((typeof Start != "undefined") && (typeof End != "undefined") && ((Start.y != End.y) || (Start.x != End.x)))
@@ -325,6 +387,8 @@ function Tick()
 	setTimeout(Tick,100);
 }
 
-//InitMap()
-InitScreen()
-Tick()
+
+InitMap();
+InitScreen();
+InitPalette();
+Tick();

@@ -1,7 +1,34 @@
-/*Basic cell*/
 .column
 {
 	width: 12px;
-	height: 16px;
+	height: 14px;
 	display: inline-block;
+}
+
+.row
+{
+	height: 14px;
+}
+
+#Map
+{
+	position: absolute;
+	left: 0;
+	cursor: crosshair
+}
+
+#Palette
+{
+	position: absolute;
+	right: 0;
+	cursor: crosshair
+}
+
+#Palette .row
+{
+	border: 2px solid black;
+	width: 26px;
+	height: 30px;
+	vertical-align: top;
+	text-align: center;
 }
