@@ -217,10 +217,10 @@ var Wall =
 	walkable: false
 }
 
-var Agent =
+var Agent = function()
 {
-	appearance: "@",
-	walkable: false
+	this.appearance: "@",
+	this.walkable: false,
 }
 
 var WallSelector =
@@ -255,6 +255,7 @@ var Start;
 var End;
 var Palette = [];
 var Selector = "picker";
+var SelectedAgent;
 
 
 function InitMap()
@@ -301,15 +302,16 @@ function MapInteract(x,y)
 {
 	if (Selector == "picker")
 	{
-		if (typeof Start == "undefined")
+		if (Map[y][x] == Agent)
 		{
-			Start = {x: x, y: y};
+			SelectedAgent = Map[y][x];
 		}
-		else
+		if ((Map[y][x] != Agent) && (typeof SelectedAgent != "undefined")
 		{
-			End = {x: x, y: y};
+			SelectedAgent.goal = {x: x, y: y};
 		}
 	}
+	if (Selector == Agent) Map[y][x] = new Agent;
 	else Map[y][x] = Selector;
 }
 
