@@ -1,13 +1,17 @@
 .column
 {
-	width: 12px;
-	height: 14px;
+	width: 14px;
+	height: 18px;
 	display: inline-block;
+	vertical-align: top;
+	text-align: center;
 }
 
 .row
 {
-	height: 14px;
+	height: 18px;
+	vertical-align: top;
+	text-align: center;
 }
 
 #Map

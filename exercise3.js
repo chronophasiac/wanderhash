@@ -219,8 +219,8 @@ var Wall =
 
 var Agent = function()
 {
-	this.appearance: "@",
-	this.walkable: false,
+	this.appearance= "@",
+	this.walkable= false
 }
 
 var WallSelector =
@@ -300,19 +300,25 @@ function InitScreen()
 
 function MapInteract(x,y)
 {
-	if (Selector == "picker")
+	switch (Selector)
 	{
-		if (Map[y][x] == Agent)
-		{
-			SelectedAgent = Map[y][x];
-		}
-		if ((Map[y][x] != Agent) && (typeof SelectedAgent != "undefined")
-		{
-			SelectedAgent.goal = {x: x, y: y};
-		}
+		case "picker":
+			if (Map[y][x].appearance == "@")
+			{
+				SelectedAgent = Map[y][x];
+			}
+			if ((Map[y][x].appearance != "@") && (typeof SelectedAgent != "undefined"))
+			{
+				SelectedAgent.goal = {x: x, y: y};
+			}
+			break;
+		case Agent:
+			if (Map[y][x].appearance != "@") Map[y][x] = new Agent;
+			break;
+		default:
+			Map[y][x] = Selector;
+			break;
 	}
-	if (Selector == Agent) Map[y][x] = new Agent;
-	else Map[y][x] = Selector;
 }
 
 function InitPalette()
@@ -339,15 +345,13 @@ function SetSelector(y)
 
 
 //Draw one step from the path
-function DrawPath(path,map,start)
+function DrawPath(path,map,pos,agent)
 {
-	var pos = start;
 	var dx = Getdx(path[0]);
 	var dy = Getdy(path[0]);
 	var nextpos = {x:pos.x + dx, y:pos.y + dy};
+	map[nextpos.y][nextpos.x] = agent;
 	map[pos.y][pos.x] = Empty;
-	map[nextpos.y][nextpos.x] = Agent;
-	Start = nextpos;
 }
 
 /*Update the Screen with data from the Map, and draw graphics*/
@@ -355,7 +359,7 @@ function UpdateScreen()
 {
 	for(var y=0; y < Map.length; y++)
 	{
-		for(var x=0; x < Map[0].length; x++)
+		for(var x=0; x < Map[y].length; x++)
 		{
 			DrawTile(Screen[y][x], Map[y][x])
 		}
@@ -371,14 +375,26 @@ function DrawTile(screenPos, mapTile)
 //Get the path for the agent, then draw it.
 function RunFrame()
 {
-	if ((typeof Start != "undefined") && (typeof End != "undefined") && ((Start.y != End.y) || (Start.x != End.x)))
+	var agentarray = [];
+	for (var y = 0; y < Map.length; y++)
 	{
-		var path = Pathflinder(Map,Start,End);
-		if (path) DrawPath(path,Map,Start);
+		for (var x = 0; x < Map[0].length; x++)
+		{
+			if (Map[y][x].appearance == "@")
+			{
+				var agent = {ref: Map[y][x], pos: {x: x, y: y}};
+				if ((typeof agent.ref.goal != "undefined") 
+				&& ((agent.pos.y != agent.ref.goal.y) || (agent.pos.x != agent.ref.goal.x)))
+				{
+					agentarray.push(agent);
+				}
+			}
+		}
 	}
-	if ((typeof Start != "undefined") && (typeof End == "undefined"))
+	for (var i = 0; i < agentarray.length; i++)
 	{
-	Map[Start.y][Start.x] = Agent;
+		var path = Pathflinder(Map,agentarray[i].pos,agentarray[i].ref.goal);
+		if (path) DrawPath(path,Map,agentarray[i].pos,agentarray[i].ref);
 	}
 }
 
