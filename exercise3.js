@@ -248,15 +248,11 @@ var EmptySelector =
 }
 
 var PaletteItems = [PickerSelector, WallSelector, AgentSelector, EmptySelector];
-
 var Map;
 var Screen = [];
-var Start;
-var End;
 var Palette = [];
-var Selector = "picker";
+var Selector = Agent;
 var SelectedAgent;
-
 
 function InitMap()
 {
@@ -354,6 +350,27 @@ function DrawPath(path,map,pos,agent)
 	map[pos.y][pos.x] = Empty;
 }
 
+function EnumAgents()
+{
+	var agentarray = [];
+	for (var y = 0; y < Map.length; y++)
+	{
+		for (var x = 0; x < Map[0].length; x++)
+		{
+			if (Map[y][x].appearance == "@")
+			{
+				var agent = {ref: Map[y][x], pos: {x: x, y: y}};
+				if ((typeof agent.ref.goal != "undefined") 
+				&& ((agent.pos.y != agent.ref.goal.y) || (agent.pos.x != agent.ref.goal.x)))
+				{
+					agentarray.push(agent);
+				}
+			}
+		}
+	}
+	return agentarray;
+}
+
 /*Update the Screen with data from the Map, and draw graphics*/
 function UpdateScreen()
 {
@@ -372,25 +389,10 @@ function DrawTile(screenPos, mapTile)
 	screenPos.text(mapTile.appearance)
 }
 
-//Get the path for the agent, then draw it.
+//Get the path for the agents, then draw it.
 function RunFrame()
 {
-	var agentarray = [];
-	for (var y = 0; y < Map.length; y++)
-	{
-		for (var x = 0; x < Map[0].length; x++)
-		{
-			if (Map[y][x].appearance == "@")
-			{
-				var agent = {ref: Map[y][x], pos: {x: x, y: y}};
-				if ((typeof agent.ref.goal != "undefined") 
-				&& ((agent.pos.y != agent.ref.goal.y) || (agent.pos.x != agent.ref.goal.x)))
-				{
-					agentarray.push(agent);
-				}
-			}
-		}
-	}
+	var agentarray = EnumAgents();
 	for (var i = 0; i < agentarray.length; i++)
 	{
 		var path = Pathflinder(Map,agentarray[i].pos,agentarray[i].ref.goal);
