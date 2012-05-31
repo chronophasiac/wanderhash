@@ -280,7 +280,10 @@ function InitScreen()
 		var columnarray = []
 		for(var x=0; x < Map[0].length; x++)
 		{
-			var column = $('<div class="column"></div>');
+			var coords = [y, x];
+			coords = coords.join("_");
+			var id = '<div id="'+coords+'"></div>';
+			var column = $('<div class="column" id="'+coords+'"></div>');
 			(function(x,y) {
 				column.mousedown(function(event)
 				{
@@ -296,12 +299,14 @@ function InitScreen()
 
 function MapInteract(x,y)
 {
+	var selectcoords = '#'+y+'_'+x;
 	switch (Selector)
 	{
 		case "picker":
 			if (Map[y][x].appearance == "@")
 			{
 				SelectedAgent = Map[y][x];
+				$(selectcoords).addClass("bold");
 			}
 			if ((Map[y][x].appearance != "@") && (typeof SelectedAgent != "undefined"))
 			{

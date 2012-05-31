@@ -26,6 +26,12 @@
 	user-select: none;
 }
 
+.bold
+{
+	font-weight: bold;
+	color: red;
+}
+
 #Map
 {
 	position: absolute;
