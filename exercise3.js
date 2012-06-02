@@ -11,16 +11,17 @@ function ascii_art_to_map(map)
 			switch (map[iy][ix])
 			{
 				case " ":
-					tile = Empty;
+					tile = new Empty;
 					break;
 				case "#":
-					tile = Wall;
+					tile = new Wall;
 					break;
 				case "@":
+					tile = new Empty;
 					tile.contents = new Agent;
 					break;
 				default:
-					tile = Empty;
+					tile = new Empty;
 					console.log("ascii_art_to_map error");
 					break;
 			}
@@ -208,28 +209,54 @@ function Pathflinder(orig_map,start,end)
 
 
 //Initialize
-var Empty =
+var Empty = function()
 {
-	appearance: " ",
-	walkable: true
+	this.contents = [];
 }
 
-var Wall =
+Empty.prototype.appearance = " ";
+Empty.prototype.walkable = true;
+Empty.prototype.placeon = true;
+
+var Wall = function ()
 {
-	appearance: "#",
-	walkable: false
+	this.contents = [];
 }
 
-var Agent = function()
+Wall.prototype.appearance = "#";
+Wall.prototype.walkable = false;
+
+var Agent = function(y,x)
 {
-	this.goal = null;
+	this.moveto = null;
+	this.pos = 
+	{
+		x: x,
+		y: y
+	}
 }
 
 Agent.prototype.appearance = '@';
-Agent.prototype.walkable = false;
-Agent.prototype.moveTo = function(x,y)
+Agent.prototype.selectable = true;
+Agent.prototype.tracked = true;
+Agent.prototype.tick = function()
 {
-	// TODO
+	if (this.moveto && ((this.pos.y != this.moveto.y) || (this.pos.x != this.moveto.x)))
+	{
+		var path = Pathflinder(Map,this.pos,this.moveto);
+		if (path) 
+		{
+			this.pos = DrawPath(path,Map,this.pos,this);
+		}
+	}
+}
+
+var Picker =
+{
+}
+
+var Delete =
+{
 }
 
 var WallSelector =
@@ -247,13 +274,13 @@ var AgentSelector =
 var PickerSelector =
 {
 	appearance: "S",
-	select: "picker"
+	select: Picker,
 }
 
 var EmptySelector =
 {
 	appearance: "X",
-	select: Empty
+	select: Delete
 }
 
 var PaletteItems = [PickerSelector, WallSelector, AgentSelector, EmptySelector];
@@ -261,7 +288,8 @@ var Map = [];
 var Screen = [];
 var Palette = [];
 var Selector = Agent;
-var SelectedAgent;
+var SelectedObject;
+var AgentArray = [];
 
 function InitMap()
 {
@@ -271,7 +299,6 @@ function InitMap()
 		var columnarray = []
 		for(var ix = 0; ix < devmap[iy].length; ix++)
 		{
-			devmap[iy][ix].contents = null;
 			columnarray.push(devmap[iy][ix]);
 		}
 		Map.push(columnarray)
@@ -302,30 +329,75 @@ function InitScreen()
 	}
 }
 
-function MapInteract(x, y)
+function AddToMap(object, x, y)
 {
-	switch (Selector)
+	switch (object)
 	{
-		case "picker":
-			if (Map[y][x].contents.appearance == "@")
-			{
-				SelectedAgent = Map[y][x].contents;
-				$(Screen[y][x]).addClass("bold");
-			}
-			if ((Map[y][x].contents.appearance != "@") && (typeof SelectedAgent != "undefined"))
-			{
-				SelectedAgent.goal = {x: x, y: y};
-			}
-			break;
 		case Agent:
-			if (Map[y][x].contents != Agent) 
+			if (Map[y][x].placeon && Map[y][x].contents.length == 0) 
 			{
-				Map[y][x].contents = new Agent;
+				var agent = new Agent(y,x);
+				Map[y][x].contents.push(agent);
+				AgentArray.push(agent);
 			}
 			break;
 		default:
-			Map[y][x] = Selector;
-			break;
+			if (Map[y][x].placeon)
+			{
+				Map[y][x] = new object;
+			}
+	}
+}
+
+function DeleteFromMap(x, y)
+{
+	if (Map[y][x].contents)
+	{
+		for (var i = 0; i < Map[y][x].contents.length; i++)
+		{
+			if (Map[y][x].contents[i].tracked)
+			{
+				var deletetracked = Map[y][x].contents[i];
+				for (var j = 0; j < AgentArray.length; j++)
+				{
+					if (deletetracked == AgentArray[j])
+					{
+						if (j < (AgentArray.length - 1))
+						{
+							AgentArray[AgentArray.length - 1] = AgentArray[j];
+						}
+						AgentArray.pop();	
+					}
+				}
+			}
+		}
+	}
+	Map[y][x] = new Empty;
+}
+
+
+function MapInteract(x, y)
+{
+	if (Selector == Picker)
+	{
+		if (Map[y][x].contents.length >= 1)
+		{
+			var lastelement = Map[y][x].contents.length - 1;
+			SelectedObject = Map[y][x].contents[lastelement];
+			$(Screen[y][x]).addClass("bold");
+		}
+		if ((Map[y][x].contents.length == 0) && SelectedObject)
+		{
+			SelectedObject.moveto = {x: x, y: y};
+		}
+	}
+	else if (Selector == Delete)
+	{
+		DeleteFromMap(x, y)
+	}
+	else
+	{
+		AddToMap(Selector, x, y)
 	}
 }
 
@@ -358,8 +430,9 @@ function DrawPath(path,map,pos,agent)
 	var dx = Getdx(path[0]);
 	var dy = Getdy(path[0]);
 	var nextpos = {x: pos.x + dx, y: pos.y + dy};
-	map[nextpos.y][nextpos.x].contents = agent;
-	map[pos.y][pos.x] = Empty;
+	map[nextpos.y][nextpos.x].contents.push(agent);
+	map[pos.y][pos.x].contents.pop();
+	return nextpos;
 }
 
 function EnumAgents()
@@ -369,15 +442,12 @@ function EnumAgents()
 	{
 		for (var ix = 0; ix < Map[iy].length; ix++)
 		{
-			if (Map[iy][ix].contents)
+			if (Map[iy][ix].contents.length >= 1)
 			{
-				if (Map[iy][ix].contents.appearance == "@")
+				for (var i = 0; i < Map[iy][ix].contents.length; i++)
 				{
-					var agent = {ref: Map[iy][ix].contents, pos: {x: ix, y: iy}};
-					if (agent.ref.goal && ((agent.pos.y != agent.ref.goal.y) || (agent.pos.x != agent.ref.goal.x)))
-					{
-						agentarray.push(agent);
-					}
+					var agent = Map[iy][ix].contents[i];
+					agentarray.push(agent);
 				}
 			}
 		}
@@ -401,17 +471,15 @@ function UpdateScreen()
 function DrawTile(screenpos, maptile)
 {
 	screenpos.text(maptile.appearance);
-	if (maptile.contents) screenpos.text(maptile.contents.appearance);
+	if (maptile.contents && (maptile.contents.length >= 1)) screenpos.text(maptile.contents[0].appearance);
 }
 
 //Get the path for the agents, then draw it.
 function RunFrame()
 {
-	var agentarray = EnumAgents();
-	for (var i = 0; i < agentarray.length; i++)
+	for (var i = 0; i < AgentArray.length; i++)
 	{
-		var path = Pathflinder(Map,agentarray[i].pos,agentarray[i].ref.goal);
-		if (path) DrawPath(path,Map,agentarray[i].pos,agentarray[i].ref);
+		AgentArray[i].tick();
 	}
 }
 
