@@ -1,7 +1,15 @@
+body
+{
+	font-size: large;
+	font-family: "Courier New";
+	font-family: Courier;
+	font-family: monospace;
+}
+
 .column
 {
-	width: 14px;
-	height: 18px;
+	width: 10px;
+	height: 14px;
 	display: inline-block;
 	vertical-align: top;
 	text-align: center;
@@ -15,7 +23,6 @@
 
 .row
 {
-	height: 18px;
 	vertical-align: top;
 	text-align: center;
 	-webkit-touch-callout: none;
