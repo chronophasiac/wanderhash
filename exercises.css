@@ -26,10 +26,31 @@
 	user-select: none;
 }
 
-.bold
+.mapselected
 {
 	font-weight: bold;
 	color: red;
+}
+
+.paletteselected
+{
+	font-weight: bold;
+	color: blue;
+}
+
+.empty:before
+{
+	content: " ";
+}
+
+.agent:before
+{
+	content: "@";
+}
+
+.wall:before
+{
+	content: "#";
 }
 
 #Map

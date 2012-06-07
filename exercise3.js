@@ -214,7 +214,7 @@ var Empty = function()
 	this.contents = [];
 }
 
-Empty.prototype.appearance = " ";
+Empty.prototype.appearance = "empty";
 Empty.prototype.walkable = true;
 Empty.prototype.placeon = true;
 
@@ -223,7 +223,7 @@ var Wall = function ()
 	this.contents = [];
 }
 
-Wall.prototype.appearance = "#";
+Wall.prototype.appearance = "wall";
 Wall.prototype.walkable = false;
 
 var Agent = function(y,x)
@@ -236,9 +236,10 @@ var Agent = function(y,x)
 	}
 }
 
-Agent.prototype.appearance = '@';
+Agent.prototype.appearance = "agent";
 Agent.prototype.selectable = true;
-Agent.prototype.tracked = true;
+Agent.prototype.selected = false;
+Agent.prototype.dynamic = true;
 Agent.prototype.tick = function()
 {
 	if (this.moveto && ((this.pos.y != this.moveto.y) || (this.pos.x != this.moveto.x)))
@@ -250,6 +251,10 @@ Agent.prototype.tick = function()
 		}
 	}
 }
+
+var GameObjects = [new Wall, new Empty, new Agent];
+
+var GameObjectsAppearances = '';
 
 var Picker =
 {
@@ -284,12 +289,31 @@ var EmptySelector =
 }
 
 var PaletteItems = [PickerSelector, WallSelector, AgentSelector, EmptySelector];
+
 var Map = [];
+
 var Screen = [];
+
 var Palette = [];
-var Selector = Agent;
-var SelectedObject;
-var AgentArray = [];
+
+var ActivePaletteItem = Agent;
+ActivePaletteItem.y = 2;
+
+var SelectedObject =
+{
+	curr: null,
+	prev: null
+}
+
+var DynamicObjects = [];
+
+function InitGameObjectAppearances()
+{
+	for (var i = 0; i < GameObjects.length; i++)
+	{
+		GameObjectsAppearances += (GameObjects[i].appearance + ' ');
+	}
+}
 
 function InitMap()
 {
@@ -309,13 +333,13 @@ function InitScreen()
 {
 	for(var iy = 0; iy < Map.length; iy++)
 	{
-		var row = $('<div class="row"></div>');
+		var row = $('<div class="row"></div>', mappos);
 		var mappos = $("#Map");
 		row.appendTo(mappos)
 		var columnarray = []
 		for(var ix = 0; ix < Map[iy].length; ix++)
 		{
-			var column = $('<div class="column"</div>');
+			var column = $('<div class="column"</div>', row);
 			(function(ix, iy) {
 				column.mousedown(function(event)
 				{
@@ -338,7 +362,7 @@ function AddToMap(object, x, y)
 			{
 				var agent = new Agent(y,x);
 				Map[y][x].contents.push(agent);
-				AgentArray.push(agent);
+				DynamicObjects.push(agent);
 			}
 			break;
 		default:
@@ -355,49 +379,58 @@ function DeleteFromMap(x, y)
 	{
 		for (var i = 0; i < Map[y][x].contents.length; i++)
 		{
-			if (Map[y][x].contents[i].tracked)
+			if (Map[y][x].contents[i].dynamic)
 			{
-				var deletetracked = Map[y][x].contents[i];
-				for (var j = 0; j < AgentArray.length; j++)
-				{
-					if (deletetracked == AgentArray[j])
-					{
-						if (j < (AgentArray.length - 1))
-						{
-							AgentArray[AgentArray.length - 1] = AgentArray[j];
-						}
-						AgentArray.pop();	
-					}
-				}
+				UntrackDynamicObject(Map[y][x].contents[i]);
 			}
 		}
 	}
 	Map[y][x] = new Empty;
 }
 
+function UntrackDynamicObject(object)
+{
+	for (var i = 0; i < DynamicObjects.length; i++)
+	{
+		if (object == DynamicObjects[i])
+		{
+			if (i < (DynamicObjects.length - 1))
+			{
+				DynamicObjects[i] = DynamicObjects[DynamicObjects.length - 1];
+			}
+			DynamicObjects.pop();	
+		}
+	}
+}
+
 
 function MapInteract(x, y)
 {
-	if (Selector == Picker)
+	if (ActivePaletteItem == Picker)
 	{
 		if (Map[y][x].contents.length >= 1)
 		{
+			if (SelectedObject.curr)
+			{
+				SelectedObject.prev = SelectedObject.curr;
+				SelectedObject.prev.selected = false;
+			}
 			var lastelement = Map[y][x].contents.length - 1;
-			SelectedObject = Map[y][x].contents[lastelement];
-			$(Screen[y][x]).addClass("bold");
+			SelectedObject.curr = Map[y][x].contents[lastelement];
+			SelectedObject.curr.selected = true;
 		}
-		if ((Map[y][x].contents.length == 0) && SelectedObject)
+		if ((Map[y][x].contents.length == 0) && SelectedObject.curr)
 		{
-			SelectedObject.moveto = {x: x, y: y};
+			SelectedObject.curr.moveto = {x: x, y: y};
 		}
 	}
-	else if (Selector == Delete)
+	else if (ActivePaletteItem == Delete)
 	{
 		DeleteFromMap(x, y)
 	}
 	else
 	{
-		AddToMap(Selector, x, y)
+		AddToMap(ActivePaletteItem, x, y)
 	}
 }
 
@@ -411,16 +444,26 @@ function InitPalette()
 		(function(iy) {
 			row.mousedown(function(event)
 				{
-					SetSelector(iy);
+					SetActivePaletteItem(iy);
 				})
 		})(iy);
 		row.text(PaletteItems[iy].appearance);
+		Palette.push(row);
+	}
+	if (ActivePaletteItem)
+	{
+		$(Palette[ActivePaletteItem.y]).addClass("paletteselected");
 	}
 }
 
-function SetSelector(y)
+function SetActivePaletteItem(y)
 {
-	Selector = PaletteItems[y].select;
+	var previtem = ActivePaletteItem;
+	previtem.y = ActivePaletteItem.y;
+	ActivePaletteItem = PaletteItems[y].select;
+	ActivePaletteItem.y = y;
+	$(Palette[ActivePaletteItem.y]).addClass("paletteselected");
+	$(Palette[previtem.y]).removeClass("paletteselected");
 }
 
 
@@ -433,26 +476,6 @@ function DrawPath(path,map,pos,agent)
 	map[nextpos.y][nextpos.x].contents.push(agent);
 	map[pos.y][pos.x].contents.pop();
 	return nextpos;
-}
-
-function EnumAgents()
-{
-	var agentarray = [];
-	for (var iy = 0; iy < Map.length; iy++)
-	{
-		for (var ix = 0; ix < Map[iy].length; ix++)
-		{
-			if (Map[iy][ix].contents.length >= 1)
-			{
-				for (var i = 0; i < Map[iy][ix].contents.length; i++)
-				{
-					var agent = Map[iy][ix].contents[i];
-					agentarray.push(agent);
-				}
-			}
-		}
-	}
-	return agentarray;
 }
 
 /*Update the Screen with data from the Map, and draw graphics*/
@@ -470,16 +493,25 @@ function UpdateScreen()
 /*Insert the graphics from map coordinates to screen coordinates*/
 function DrawTile(screenpos, maptile)
 {
-	screenpos.text(maptile.appearance);
-	if (maptile.contents && (maptile.contents.length >= 1)) screenpos.text(maptile.contents[0].appearance);
+	$(screenpos).removeClass(GameObjectsAppearances);
+	$(screenpos).removeClass('mapselected');
+	$(screenpos).addClass(maptile.appearance);
+	if (maptile.contents && (maptile.contents.length >= 1)) 
+	{
+		$(screenpos).addClass(maptile.contents[0].appearance);
+		if (maptile.contents[0].selected)
+		{
+			$(screenpos).addClass("mapselected");
+		}
+	}
 }
 
 //Get the path for the agents, then draw it.
 function RunFrame()
 {
-	for (var i = 0; i < AgentArray.length; i++)
+	for (var i = 0; i < DynamicObjects.length; i++)
 	{
-		AgentArray[i].tick();
+		DynamicObjects[i].tick();
 	}
 }
 
@@ -491,6 +523,7 @@ function Tick()
 }
 
 
+InitGameObjectAppearances();
 InitMap();
 InitScreen();
 InitPalette();
