@@ -493,15 +493,32 @@ function UpdateScreen()
 /*Insert the graphics from map coordinates to screen coordinates*/
 function DrawTile(screenpos, maptile)
 {
-	$(screenpos).removeClass(GameObjectsAppearances);
-	$(screenpos).removeClass('mapselected');
-	$(screenpos).addClass(maptile.appearance);
+	var screenposclasses = $(screenpos).attr("class").split(" ");
+	var maptileclasses = ["column"];
+	maptileclasses.push(maptile.appearance);
 	if (maptile.contents && (maptile.contents.length >= 1)) 
 	{
-		$(screenpos).addClass(maptile.contents[0].appearance);
+		maptileclasses.push(maptile.contents[0].appearance);
 		if (maptile.contents[0].selected)
 		{
-			$(screenpos).addClass("mapselected");
+			maptileclasses.push("mapselected");
+		}
+	}
+	if (maptileclasses.length != screenposclasses.length)
+	{
+		$(screenpos).removeClass();
+		$(screenpos).addClass(maptileclasses.join(" "));
+	}
+	else
+	{
+		for (var i = 0; i < maptileclasses.length; i ++)
+		{
+			if (maptileclasses[i] != screenposclasses[i])
+			{
+				$(screenpos).removeClass();
+				$(screenpos).addClass(maptileclasses.join(" "));
+				break;
+			}
 		}
 	}
 }
