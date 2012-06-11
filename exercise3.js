@@ -1,10 +1,10 @@
 //Test functions
 function ascii_art_to_map(map)
 {
-	var columnarray = [];
+	var mapcolumnarray = [];
 	for (var iy = 0; iy < map.length; iy++)
 	{
-		var rowarray = [];
+		var maprowarray = [];
 		for (var ix = 0; ix < map[iy].length; ix++)
 		{
 			var tile;
@@ -25,19 +25,19 @@ function ascii_art_to_map(map)
 					console.log("ascii_art_to_map error");
 					break;
 			}
-			rowarray.push(tile);
+			maprowarray.push(tile);
 		}
-		columnarray.push(rowarray);
+		mapcolumnarray.push(maprowarray);
 	}
-	return columnarray;
+	return mapcolumnarray;
 }
 
 function map_to_ascii_art(map)
 {
-	var columnstring = [];
+	var mapcolumnstring = [];
 	for (var iy = 0; iy < map.length; iy++)
 	{
-		var rowstring = [];
+		var maprowstring = [];
 		for (var ix = 0; ix < map[iy].length; ix++)
 		{
 			var contents;
@@ -57,13 +57,13 @@ function map_to_ascii_art(map)
 					console.log("map_to_ascii_art error");
 					break;
 			}
-			rowstring.push(contents);
+			maprowstring.push(contents);
 		}
-		rowstring.push("\n");
-		rowstring = rowstring.join("")
-		columnstring.push(rowstring);
+		maprowstring.push("\n");
+		maprowstring = maprowstring.join("")
+		mapcolumnstring.push(maprowstring);
 	}
-	console.log(columnstring.join(""));
+	console.log(mapcolumnstring.join(""));
 }
 
 function testmap()
@@ -252,10 +252,6 @@ Agent.prototype.tick = function()
 	}
 }
 
-var GameObjects = [new Wall, new Empty, new Agent];
-
-var GameObjectsAppearances = '';
-
 var Picker =
 {
 }
@@ -266,29 +262,29 @@ var Delete =
 
 var WallSelector =
 {
-	appearance: "#",
+	appearance: "wall",
 	select: Wall
 }
 
 var AgentSelector =
 {
-	appearance: "@",
+	appearance: "agent",
 	select: Agent
 }
 
 var PickerSelector =
 {
-	appearance: "S",
+	appearance: "picker",
 	select: Picker,
 }
 
-var EmptySelector =
+var DeleteSelector =
 {
-	appearance: "X",
+	appearance: "delete",
 	select: Delete
 }
 
-var PaletteItems = [PickerSelector, WallSelector, AgentSelector, EmptySelector];
+var PaletteItems = [PickerSelector, WallSelector, AgentSelector, DeleteSelector];
 
 var Map = [];
 
@@ -307,25 +303,17 @@ var SelectedObject =
 
 var DynamicObjects = [];
 
-function InitGameObjectAppearances()
-{
-	for (var i = 0; i < GameObjects.length; i++)
-	{
-		GameObjectsAppearances += (GameObjects[i].appearance + ' ');
-	}
-}
-
 function InitMap()
 {
 	var devmap = ascii_art_to_map(testmap().map);
 	for(var iy = 0; iy < devmap.length; iy++)
 	{
-		var columnarray = []
+		var mapcolumnarray = []
 		for(var ix = 0; ix < devmap[iy].length; ix++)
 		{
-			columnarray.push(devmap[iy][ix]);
+			mapcolumnarray.push(devmap[iy][ix]);
 		}
-		Map.push(columnarray)
+		Map.push(mapcolumnarray)
 	}
 }
 
@@ -333,23 +321,23 @@ function InitScreen()
 {
 	for(var iy = 0; iy < Map.length; iy++)
 	{
-		var row = $('<div class="row"></div>', mappos);
+		var maprow = $('<div class="maprow"></div>', mappos);
 		var mappos = $("#Map");
-		row.appendTo(mappos)
-		var columnarray = []
+		maprow.appendTo(mappos)
+		var mapcolumnarray = []
 		for(var ix = 0; ix < Map[iy].length; ix++)
 		{
-			var column = $('<div class="column"</div>', row);
+			var mapcolumn = $('<div class="mapcolumn"</div>', maprow);
 			(function(ix, iy) {
-				column.mousedown(function(event)
+				mapcolumn.mousedown(function(event)
 				{
 					MapInteract(ix, iy);
 				})
 			})(ix, iy);
-			column.appendTo(row);
-			columnarray.push(column);
+			mapcolumn.appendTo(maprow);
+			mapcolumnarray.push(mapcolumn);
 		}
-		Screen.push(columnarray);
+		Screen.push(mapcolumnarray);
 	}
 }
 
@@ -438,17 +426,17 @@ function InitPalette()
 {
 	for (var iy = 0; iy < PaletteItems.length; iy++)
 	{
-		var row = $('<div class="row"></div>');
+		var paletterow = $('<div class="paletterow"></div>');
 		var palettepos = $("#Palette");
-		row.appendTo(palettepos);
+		paletterow.appendTo(palettepos);
 		(function(iy) {
-			row.mousedown(function(event)
+			paletterow.mousedown(function(event)
 				{
 					SetActivePaletteItem(iy);
 				})
 		})(iy);
-		row.text(PaletteItems[iy].appearance);
-		Palette.push(row);
+		$(paletterow).addClass(PaletteItems[iy].appearance);
+		Palette.push(paletterow);
 	}
 	if (ActivePaletteItem)
 	{
@@ -494,7 +482,7 @@ function UpdateScreen()
 function DrawTile(screenpos, maptile)
 {
 	var screenposclasses = $(screenpos).attr("class").split(" ");
-	var maptileclasses = ["column"];
+	var maptileclasses = ["mapcolumn"];
 	maptileclasses.push(maptile.appearance);
 	if (maptile.contents && (maptile.contents.length >= 1)) 
 	{
@@ -540,7 +528,6 @@ function Tick()
 }
 
 
-InitGameObjectAppearances();
 InitMap();
 InitScreen();
 InitPalette();

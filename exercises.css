@@ -4,9 +4,10 @@ body
 	font-family: "Courier New";
 	font-family: Courier;
 	font-family: monospace;
+	position: relative
 }
 
-.column
+.mapcolumn
 {
 	width: 12px;
 	height: 16px;
@@ -21,7 +22,12 @@ body
 	user-select: none;
 }
 
-.row
+.mapcolumn:hover
+{
+	background-color: #fcc;
+}
+
+.maprow
 {
 	vertical-align: top;
 	text-align: center;
@@ -39,12 +45,6 @@ body
 	color: red;
 }
 
-.paletteselected
-{
-	font-weight: bold;
-	color: blue;
-}
-
 .empty:before
 {
 	content: " ";
@@ -60,26 +60,51 @@ body
 	content: "#";
 }
 
+.picker:before
+{
+	content: "S";
+}
+
+.delete:before
+{
+	content: "X";
+}
+
 #Map
 {
 	position: absolute;
 	left: 0;
-	cursor: crosshair
+	cursor: crosshair;
+	border: 6px ridge #08f;
+	border-radius: 10px;
 }
 
 #Palette
 {
+	display: inline-block;
+	text-decoration:none;
 	position: absolute;
 	right: 0;
-	cursor: crosshair
+	cursor: pointer;
+	border: 6px solid #08f;
+	border-radius: 10px;
 }
 
-#Palette .row
+.paletterow
 {
-	border: 2px solid black;
+	color: white;
+	border: 1px solid #206876;
+	border-radius: 7px;
+	background: #04859d;
+	background: -webkit-gradient(linear, left top, left bottom, 
+		from(#faa51a), to(#f47a20));
 	width: 26px;
-	height: 30px;
-	vertical-align: top;
+	height: 26px;
+	margin: 2px;
+	padding: 1px;
+	text-shadow: 0 1px 1px rgba(0,0,0,.3);
+	-webkit-box-shadow: 0 1px 2px rgba(0,0,0,.2);
+	vertical-align: middle;
 	text-align: center;
 	-webkit-touch-callout: none;
 	-webkit-user-select: none;
@@ -87,4 +112,22 @@ body
 	-moz-user-select: none;
 	-ms-user-select: none;
 	user-select: none;
+}
+
+.paletterow:hover
+{
+	text-decoration: none;
+	background: #f47c20;
+	background: -webkit-gradient(linear, left top, 
+		left bottom, from(#f88e11), to(#f06015));
+}
+
+.paletteselected
+{
+	text-decoration: none;
+	color: #000;
+	background: -webkit-gradient(linear, left top, 
+		left bottom, from(#f47a20), to(#faa51a));
+	position: relative;
+	top: 1px;
 }
