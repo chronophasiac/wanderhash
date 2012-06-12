@@ -9,11 +9,14 @@ body
 
 .mapColumn
 {
+	cursor: crosshair;
 	width: 12px;
 	height: 16px;
 	display: inline-block;
 	vertical-align: top;
 	text-align: center;
+	margin: 0px;
+	padding-bottom: 2px;
 	-webkit-touch-callout: none;
 	-webkit-user-select: none;
 	-khtml-user-select: none;
@@ -31,6 +34,7 @@ body
 {
 	vertical-align: top;
 	text-align: center;
+	margin: 0px;
 	-webkit-touch-callout: none;
 	-webkit-user-select: none;
 	-khtml-user-select: none;
@@ -41,8 +45,8 @@ body
 
 .mapSelected
 {
-	font-weight: bold;
-	color: red;
+	color: white;
+	background: black;
 }
 
 .empty:before
@@ -60,6 +64,11 @@ body
 	content: "#";
 }
 
+.underConstruction:before
+{
+	content: "%"
+}
+
 .picker:before
 {
 	content: "S";
@@ -70,21 +79,32 @@ body
 	content: "X";
 }
 
+.inspector:before
+{
+	content: "I";
+}
+
 #Map
 {
-	position: absolute;
-	left: 0;
-	cursor: crosshair;
+	position:fixed;
+	top: 1em;
+	left: 1em;
 	border: 6px ridge #08f;
 	border-radius: 10px;
+}
+
+#TextBox
+{
+	position:fixed;
+	left: 1em;
+	bottom: 1em;
 }
 
 #Palette
 {
 	display: inline-block;
 	text-decoration:none;
-	position: absolute;
-	right: 0;
+	float:right;
 	cursor: pointer;
 	border: 6px solid #08f;
 	border-radius: 10px;
@@ -101,7 +121,7 @@ body
 	width: 26px;
 	height: 26px;
 	margin: 2px;
-	padding: 1px;
+	padding-top: 4px;
 	text-shadow: 0 1px 1px rgba(0,0,0,.3);
 	-webkit-box-shadow: 0 1px 2px rgba(0,0,0,.2);
 	vertical-align: middle;
@@ -130,4 +150,29 @@ body
 		left bottom, from(#f47a20), to(#faa51a));
 	position: relative;
 	top: 1px;
+}
+
+.textRow
+{
+	text-decoration: none;
+}
+
+.oneFourthConstructed
+{
+	background-color: rgb(255, 255, 0)	
+}
+
+.oneHalfConstructed
+{
+	background-color: rgb(255, 255, 60)	
+}
+
+.threeFourthsConstructed
+{
+	background-color: rgb(255, 255, 120)	
+}
+
+.almostConstructed
+{
+	background-color: rgb(255, 255, 180)	
 }

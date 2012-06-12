@@ -210,24 +210,40 @@ function Pathflinder(originalMap,start,end)
 
 
 //Initialize
-var Empty = function()
+var Empty = function(y, x)
 {
+	this.pos = 
+	{
+		x: x,
+		y: y
+	}
 	this.contents = [];
+	this.effect = null;
 }
 
 Empty.prototype.appearance = "empty";
 Empty.prototype.walkable = true;
 Empty.prototype.placeOn = true;
+Empty.prototype.description = "empty space";
+Empty.prototype.workUnitsToBuild = 500; 
 
-var Wall = function ()
+var Wall = function (y, x)
 {
+	this.pos = 
+	{
+		x: x,
+		y: y
+	}
 	this.contents = [];
+	this.effect = null;
 }
 
 Wall.prototype.appearance = "wall";
 Wall.prototype.walkable = false;
+Wall.prototype.description = "wall";
+Wall.prototype.workUnitsToBuild = 500;
 
-var Agent = function(y,x)
+var Agent = function(y, x)
 {
 	this.moveto = null;
 	this.pos = 
@@ -235,6 +251,7 @@ var Agent = function(y,x)
 		x: x,
 		y: y
 	}
+	this.effect = null;
 }
 
 Agent.prototype.appearance = "agent";
@@ -242,6 +259,8 @@ Agent.prototype.type = Agent;
 Agent.prototype.selectable = true;
 Agent.prototype.selected = false;
 Agent.prototype.dynamic = true;
+Agent.prototype.description = "sandwich maker";
+Agent.prototype.build = null;
 Agent.prototype.tick = function()
 {
 	if (this.moveto && ((this.pos.y != this.moveto.y) || (this.pos.x != this.moveto.x)))
@@ -272,6 +291,83 @@ Agent.prototype.tick = function()
 			}
 		}
 	}
+	if (this.build)
+	{
+		for (var i = 0; i < AllDirs.length; i++)
+		{
+			var dx = Getdx(AllDirs[i]);
+			var dy = Getdy(AllDirs[i]);
+			var nextPos = {x: this.build.pos.x + dx, y: this.build.pos.y + dy};
+			var nextPosTile = Map[nextPos.y][nextPos.x]; 
+			var path = Pathflinder(Map,this.pos,nextPos);
+			if (nextPosTile.walkable && path)
+			{
+				var buildpos = {x: nextPos.x, y: nextPos.y};
+				this.moveto = buildpos;
+				break;
+			}
+		}
+		if ((buildpos.y == this.pos.y) && (buildpos.x == this.pos.x))
+		{
+			this.build.currWorkUnits += 10;
+		}
+	}
+}
+
+var UnderConstruction = function(y, x)
+{
+	this.pos = 
+	{
+		x: x,
+		y: y
+	}
+	this.contents = [];
+	this.effect = null;
+}
+
+UnderConstruction.prototype.appearance = "underConstruction";
+UnderConstruction.prototype.walkable = false;
+UnderConstruction.prototype.type = UnderConstruction;
+UnderConstruction.prototype.selectable = false;
+UnderConstruction.prototype.dynamic = true;
+UnderConstruction.prototype.description = "something being built";
+UnderConstruction.prototype.currWorkUnits = null; 
+UnderConstruction.prototype.maxWorkUnits = null; 
+UnderConstruction.prototype.onCompletion = null; 
+UnderConstruction.prototype.tick = function()
+{
+	if (this.currWorkUnits >= this.maxWorkUnits)
+	{
+		DeleteFromMap(this.pos.x, this.pos.y);
+		AddToMap(this.onCompletion, this.pos.x, this.pos.y);
+	}
+	else
+	{
+		var percentDone = (this.currWorkUnits / this.maxWorkUnits) * 100;
+		if (percentDone <= 25)
+		{
+			this.effect = "oneFourthConstructed";
+		}
+		else if ((percentDone > 25) && (percentDone <= 50))
+		{
+			this.effect = "oneHalfConstructed";
+		}
+		else if ((percentDone > 50) && (percentDone <= 75))
+		{
+			this.effect = "threeFourthsConstructed";
+		}
+		else if (percentDone > 75)
+		{
+			this.effect = "almostConstructed";
+		}
+		for (var i = 0; i < DynamicObjects.length; i++)
+		{
+			if (DynamicObjects[i].type = Agent)
+			{
+				DynamicObjects[i].build = this;
+			}
+		}
+	}
 }
 
 var Picker =
@@ -279,6 +375,10 @@ var Picker =
 }
 
 var Delete =
+{
+}
+
+var Inspector =
 {
 }
 
@@ -306,7 +406,13 @@ var DeleteSelector =
 	select: Delete
 }
 
-var PaletteItems = [PickerSelector, WallSelector, AgentSelector, DeleteSelector];
+var InspectorSelector =
+{
+	appearance: "inspector",
+	select: Inspector
+}
+
+var PaletteItems = [AgentSelector, PickerSelector, InspectorSelector, DeleteSelector, WallSelector];
 
 var Map = [];
 
@@ -315,7 +421,9 @@ var Screen = [];
 var Palette = [];
 
 var ActivePaletteItem = Agent;
-ActivePaletteItem.y = 2;
+ActivePaletteItem.y = 0;
+
+var TextBox;
 
 var SelectedObject =
 {
@@ -386,87 +494,6 @@ function InitScreen()
 	}
 }
 
-function AddToMap(object, x, y)
-{
-	switch (object)
-	{
-		case Agent:
-			if (Map[y][x].placeOn && Map[y][x].contents.length == 0) 
-			{
-				var agent = new Agent(y,x);
-				Map[y][x].contents.push(agent);
-				DynamicObjects.push(agent);
-			}
-			break;
-		default:
-			if (Map[y][x].placeOn)
-			{
-				Map[y][x] = new object;
-			}
-	}
-}
-
-function DeleteFromMap(x, y)
-{
-	if (Map[y][x].contents)
-	{
-		for (var i = 0; i < Map[y][x].contents.length; i++)
-		{
-			if (Map[y][x].contents[i].dynamic)
-			{
-				UntrackDynamicObject(Map[y][x].contents[i]);
-			}
-		}
-	}
-	Map[y][x] = new Empty;
-}
-
-function UntrackDynamicObject(object)
-{
-	for (var i = 0; i < DynamicObjects.length; i++)
-	{
-		if (object == DynamicObjects[i])
-		{
-			if (i < (DynamicObjects.length - 1))
-			{
-				DynamicObjects[i] = DynamicObjects[DynamicObjects.length - 1];
-			}
-			DynamicObjects.pop();	
-		}
-	}
-}
-
-
-function MapInteract(x, y)
-{
-	if (ActivePaletteItem == Picker)
-	{
-		if (Map[y][x].contents.length >= 1)
-		{
-			if (SelectedObject.curr)
-			{
-				SelectedObject.prev = SelectedObject.curr;
-				SelectedObject.prev.selected = false;
-			}
-			var lastelement = Map[y][x].contents.length - 1;
-			SelectedObject.curr = Map[y][x].contents[lastelement];
-			SelectedObject.curr.selected = true;
-		}
-		if ((Map[y][x].contents.length == 0) && SelectedObject.curr)
-		{
-			SelectedObject.curr.moveto = {x: x, y: y};
-		}
-	}
-	else if (ActivePaletteItem == Delete)
-	{
-		DeleteFromMap(x, y)
-	}
-	else
-	{
-		AddToMap(ActivePaletteItem, x, y)
-	}
-}
-
 function InitPalette()
 {
 	for (var iy = 0; iy < PaletteItems.length; iy++)
@@ -489,6 +516,133 @@ function InitPalette()
 	}
 }
 
+function InitTextBox()
+{
+	TextBox = $('<div class="textRow"></div>');
+	var textBoxPos = $("#TextBox");
+	TextBox.appendTo(textBoxPos);
+}
+
+function AddToMap(object, x, y)
+{
+	switch (object)
+	{
+		case Agent:
+			if (Map[y][x].placeOn && Map[y][x].contents.length == 0) 
+			{
+				var agent = new Agent(y, x);
+				Map[y][x].contents.push(agent);
+				DynamicObjects.push(agent);
+			}
+			break;
+		default:
+			{
+				Map[y][x] = new object(y, x);
+			}
+	}
+}
+
+function BuildObject(object, x, y)
+{
+	if (Map[y][x].placeOn && Map[y][x].contents.length == 0)
+	{
+		var constructionSite = new UnderConstruction(y, x);
+		constructionSite.currWorkUnits = 0;
+		constructionSite.maxWorkUnits = object.prototype.workUnitsToBuild;
+		constructionSite.onCompletion = object;
+		Map[y][x] = constructionSite;
+		DynamicObjects.push(constructionSite);
+	}
+}
+
+function DeleteFromMap(x, y)
+{
+	if (Map[y][x].contents.length > 0)
+	{
+		for (var i = 0; i < Map[y][x].contents.length; i++)
+		{
+			if (Map[y][x].contents[i].dynamic)
+			{
+				UntrackDynamicObject(Map[y][x].contents[i]);
+			}
+		}
+	}
+	if (Map[y][x].dynamic)
+	{
+		UntrackDynamicObject(Map[y][x]);
+	}
+	Map[y][x] = new Empty;
+}
+
+function UntrackDynamicObject(object)
+{
+	for (var i = 0; i < DynamicObjects.length; i++)
+	{
+		if (object == DynamicObjects[i])
+		{
+			if (i < (DynamicObjects.length - 1))
+			{
+				DynamicObjects[i] = DynamicObjects[DynamicObjects.length - 1];
+			}
+			DynamicObjects.pop();	
+		}
+	}
+}
+
+function MapInteract(x, y)
+{
+	switch (ActivePaletteItem)
+	{
+		case Picker:
+			if (Map[y][x].contents.length >= 1)
+			{
+				if (SelectedObject.curr)
+				{
+					SelectedObject.prev = SelectedObject.curr;
+					SelectedObject.prev.selected = false;
+				}
+				var lastelement = Map[y][x].contents.length - 1;
+				SelectedObject.curr = Map[y][x].contents[lastelement];
+				SelectedObject.curr.selected = true;
+			}
+			if ((Map[y][x].contents.length == 0) && SelectedObject.curr)
+			{
+				SelectedObject.curr.moveto = {x: x, y: y};
+			}
+			break;
+		case Delete:
+			DeleteFromMap(x, y);
+			break;
+		case Inspector:
+			InspectMapTile(x, y);
+			break;
+		case Agent:
+			AddToMap(ActivePaletteItem, x, y);
+			break;
+		default:
+			BuildObject(ActivePaletteItem, x, y);
+			break;
+	}
+}
+
+function InspectMapTile(x, y)
+{
+	if (Map[y][x].contents.length > 0)
+	{
+		var tileStuff = ["Here are: " + Map[y][x].description];
+		for (var i = 0; i < Map[y][x].contents.length; i++)
+		{
+			tileStuff.push(Map[y][x].contents[i].description);
+		}
+		tileStuff = tileStuff.join(", ");
+	}
+	else
+	{
+		var tileStuff = "Here is: " + Map[y][x].description;
+	}
+	$(TextBox).text(tileStuff);
+}
+
 function SetActivePaletteItem(y)
 {
 	var previtem = ActivePaletteItem;
@@ -498,7 +652,6 @@ function SetActivePaletteItem(y)
 	$(Palette[ActivePaletteItem.y]).addClass("paletteSelected");
 	$(Palette[previtem.y]).removeClass("paletteSelected");
 }
-
 
 //Draw one step from the path
 function DrawPath(path,map,pos,agent)
@@ -529,6 +682,10 @@ function DrawTile(screenPos, mapTile)
 	var screenPosClasses = $(screenPos).attr("class").split(" ");
 	var mapTileClasses = ["mapColumn"];
 	mapTileClasses.push(mapTile.appearance);
+	if (mapTile.effect)
+	{
+		mapTileClasses.push(mapTile.effect);
+	}
 	if (mapTile.contents && (mapTile.contents.length >= 1)) 
 	{
 		mapTileClasses.push(mapTile.contents[0].appearance);
@@ -579,4 +736,5 @@ function Tick()
 InitMap();
 InitScreen();
 InitPalette();
+InitTextBox();
 Tick();
