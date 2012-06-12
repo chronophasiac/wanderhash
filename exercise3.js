@@ -1,10 +1,10 @@
 //Test functions
-function ascii_art_to_map(map)
+function AsciiArtToMap(map)
 {
-	var mapcolumnarray = [];
+	var mapColumnArray = [];
 	for (var iy = 0; iy < map.length; iy++)
 	{
-		var maprowarray = [];
+		var mapRowArray = [];
 		for (var ix = 0; ix < map[iy].length; ix++)
 		{
 			var tile;
@@ -22,22 +22,22 @@ function ascii_art_to_map(map)
 					break;
 				default:
 					tile = new Empty;
-					console.log("ascii_art_to_map error");
+					console.log("AsciiArtToMap error");
 					break;
 			}
-			maprowarray.push(tile);
+			mapRowArray.push(tile);
 		}
-		mapcolumnarray.push(maprowarray);
+		mapColumnArray.push(mapRowArray);
 	}
-	return mapcolumnarray;
+	return mapColumnArray;
 }
 
-function map_to_ascii_art(map)
+function MapToAsciiArt(map)
 {
-	var mapcolumnstring = [];
+	var mapColumnString = [];
 	for (var iy = 0; iy < map.length; iy++)
 	{
-		var maprowstring = [];
+		var mapRowString = [];
 		for (var ix = 0; ix < map[iy].length; ix++)
 		{
 			var contents;
@@ -54,19 +54,19 @@ function map_to_ascii_art(map)
 					break;
 				default:
 					contents = Empty;
-					console.log("map_to_ascii_art error");
+					console.log("MapToAsciiArt error");
 					break;
 			}
-			maprowstring.push(contents);
+			mapRowString.push(contents);
 		}
-		maprowstring.push("\n");
-		maprowstring = maprowstring.join("")
-		mapcolumnstring.push(maprowstring);
+		mapRowString.push("\n");
+		mapRowString = mapRowString.join("")
+		mapColumnString.push(mapRowString);
 	}
-	console.log(mapcolumnstring.join(""));
+	console.log(mapColumnString.join(""));
 }
 
-function testmap()
+function TestMap()
 {
 	var map = [
 	"#######################",
@@ -154,27 +154,27 @@ function ReverseDir(dirname)
 	}
 }
 
-function Pathflinder(orig_map,start,end)
+function Pathflinder(originalMap,start,end)
 {
 	var map = [];
-	for (var iy = 0; iy < orig_map.length; iy++)
+	for (var iy = 0; iy < originalMap.length; iy++)
 	{
 		map.push({});
 	}
 	map[start.y][start.x] = 0;
 	var frontier = [{dist: 0, x: start.x, y: start.y}];
-	var alldirs = ["north", "northeast", "east", "southeast", "south", "southwest", "west", "northwest"];
 	while (frontier.length > 0)
 	{
-		for (i = 0; i < alldirs.length; i++)
+		var dirs = GetRandomDirs();
+		for (i = 0; i < dirs.length; i++)
 		{
-			var dx = Getdx(alldirs[i]);
-			var dy = Getdy(alldirs[i]);
+			var dx = Getdx(dirs[i]);
+			var dy = Getdy(dirs[i]);
 			var visited = {dist: (map[frontier[0].y][frontier[0].x]) + 1, x:frontier[0].x + dx, y:frontier[0].y + dy};
-			var visitedcontents = orig_map[frontier[0].y + dy][frontier[0].x + dx];
-			if ((visited.x >= 0) && (visited.y <= orig_map.length)
-					&& (visited.y >= 0) && (visited.x <= orig_map[0].length)
-					&& orig_map[frontier[0].y + dy][frontier[0].x + dx].walkable
+			var visitedContents = originalMap[frontier[0].y + dy][frontier[0].x + dx];
+			if ((visited.x >= 0) && (visited.y <= originalMap.length)
+					&& (visited.y >= 0) && (visited.x <= originalMap[0].length)
+					&& originalMap[frontier[0].y + dy][frontier[0].x + dx].walkable
 					&& typeof map[frontier[0].y + dy][frontier[0].x + dx] == "undefined") 
 			{
 				map[visited.y][visited.x] = visited.dist;
@@ -189,16 +189,17 @@ function Pathflinder(orig_map,start,end)
 	var path = [];
 	while (map[pos.y][pos.x] != 0)
 	{
-		for (i = 0; i < alldirs.length; i++)
+		var dirs = GetRandomDirs();
+		for (i = 0; i < dirs.length; i++)
 		{
-			var dx = Getdx(alldirs[i]);
-			var dy = Getdy(alldirs[i]);
-			var nextpos = {x: pos.x + dx, y: pos.y + dy};
-			var nextposcontents = map[nextpos.y][nextpos.x]; 
-			if ((typeof nextposcontents != "undefined") && (nextposcontents < map[pos.y][pos.x]))
+			var dx = Getdx(dirs[i]);
+			var dy = Getdy(dirs[i]);
+			var nextPos = {x: pos.x + dx, y: pos.y + dy};
+			var nextPosTile = map[nextPos.y][nextPos.x]; 
+			if ((typeof nextPosTile != "undefined") && (nextPosTile < map[pos.y][pos.x]))
 			{
-				path.push(ReverseDir(alldirs[i]));
-				pos = nextpos;
+				path.push(ReverseDir(dirs[i]));
+				pos = nextPos;
 				break;
 			}
 		}
@@ -216,7 +217,7 @@ var Empty = function()
 
 Empty.prototype.appearance = "empty";
 Empty.prototype.walkable = true;
-Empty.prototype.placeon = true;
+Empty.prototype.placeOn = true;
 
 var Wall = function ()
 {
@@ -237,6 +238,7 @@ var Agent = function(y,x)
 }
 
 Agent.prototype.appearance = "agent";
+Agent.prototype.type = Agent;
 Agent.prototype.selectable = true;
 Agent.prototype.selected = false;
 Agent.prototype.dynamic = true;
@@ -248,6 +250,26 @@ Agent.prototype.tick = function()
 		if (path) 
 		{
 			this.pos = DrawPath(path,Map,this.pos,this);
+		}
+	}
+	else
+	{
+		var tileMates = Map[this.pos.y][this.pos.x].contents;
+		if (tileMates && tileMates.length > 1 && tileMates[tileMates.length-1] == this)
+		{
+			var dirs = GetRandomDirs();
+			for (var i = 0; i < dirs.length; i++)
+			{
+				var dx = Getdx(dirs[i]);
+				var dy = Getdy(dirs[i]);
+				var nextPos = {x: this.pos.x + dx, y: this.pos.y + dy};
+				var nextPosTile = Map[nextPos.y][nextPos.x]; 
+				if (nextPosTile.walkable && nextPosTile.contents.length == 0)
+				{
+					this.moveto = nextPos;
+					break;
+				}
+			}
 		}
 	}
 }
@@ -303,17 +325,40 @@ var SelectedObject =
 
 var DynamicObjects = [];
 
+var AllDirs = ["north", "northeast", "east", "southeast", "south", "southwest", "west", "northwest"];
+
+function GetRandomDirs()
+{
+	var dirs = [];
+	var randomDirs = [];
+	for (var i = 0; i < AllDirs.length; i++)
+	{
+		dirs.push(AllDirs[i]);
+	}
+	for (var i = 0; i < AllDirs.length; i++)
+	{
+		var diceRoll = Math.round(Math.random()*(dirs.length - 1));
+		randomDirs.push(dirs[diceRoll]);
+		if (diceRoll < dirs.length)
+		{
+			 dirs[diceRoll] = dirs[dirs.length - 1];
+		}
+		dirs.pop();
+	}
+	return randomDirs;
+}
+
 function InitMap()
 {
-	var devmap = ascii_art_to_map(testmap().map);
-	for(var iy = 0; iy < devmap.length; iy++)
+	var devMap = AsciiArtToMap(TestMap().map);
+	for(var iy = 0; iy < devMap.length; iy++)
 	{
-		var mapcolumnarray = []
-		for(var ix = 0; ix < devmap[iy].length; ix++)
+		var mapColumnArray = []
+		for(var ix = 0; ix < devMap[iy].length; ix++)
 		{
-			mapcolumnarray.push(devmap[iy][ix]);
+			mapColumnArray.push(devMap[iy][ix]);
 		}
-		Map.push(mapcolumnarray)
+		Map.push(mapColumnArray)
 	}
 }
 
@@ -321,23 +366,23 @@ function InitScreen()
 {
 	for(var iy = 0; iy < Map.length; iy++)
 	{
-		var maprow = $('<div class="maprow"></div>', mappos);
-		var mappos = $("#Map");
-		maprow.appendTo(mappos)
-		var mapcolumnarray = []
+		var mapRow = $('<div class="mapRow"></div>', mapPos);
+		var mapPos = $("#Map");
+		mapRow.appendTo(mapPos)
+		var mapColumnArray = []
 		for(var ix = 0; ix < Map[iy].length; ix++)
 		{
-			var mapcolumn = $('<div class="mapcolumn"</div>', maprow);
+			var mapColumn = $('<div class="mapColumn"</div>', mapRow);
 			(function(ix, iy) {
-				mapcolumn.mousedown(function(event)
+				mapColumn.mousedown(function(event)
 				{
 					MapInteract(ix, iy);
 				})
 			})(ix, iy);
-			mapcolumn.appendTo(maprow);
-			mapcolumnarray.push(mapcolumn);
+			mapColumn.appendTo(mapRow);
+			mapColumnArray.push(mapColumn);
 		}
-		Screen.push(mapcolumnarray);
+		Screen.push(mapColumnArray);
 	}
 }
 
@@ -346,7 +391,7 @@ function AddToMap(object, x, y)
 	switch (object)
 	{
 		case Agent:
-			if (Map[y][x].placeon && Map[y][x].contents.length == 0) 
+			if (Map[y][x].placeOn && Map[y][x].contents.length == 0) 
 			{
 				var agent = new Agent(y,x);
 				Map[y][x].contents.push(agent);
@@ -354,7 +399,7 @@ function AddToMap(object, x, y)
 			}
 			break;
 		default:
-			if (Map[y][x].placeon)
+			if (Map[y][x].placeOn)
 			{
 				Map[y][x] = new object;
 			}
@@ -426,21 +471,21 @@ function InitPalette()
 {
 	for (var iy = 0; iy < PaletteItems.length; iy++)
 	{
-		var paletterow = $('<div class="paletterow"></div>');
-		var palettepos = $("#Palette");
-		paletterow.appendTo(palettepos);
+		var paletteRow = $('<div class="paletteRow"></div>');
+		var palettePos = $("#Palette");
+		paletteRow.appendTo(palettePos);
 		(function(iy) {
-			paletterow.mousedown(function(event)
+			paletteRow.mousedown(function(event)
 				{
 					SetActivePaletteItem(iy);
 				})
 		})(iy);
-		$(paletterow).addClass(PaletteItems[iy].appearance);
-		Palette.push(paletterow);
+		$(paletteRow).addClass(PaletteItems[iy].appearance);
+		Palette.push(paletteRow);
 	}
 	if (ActivePaletteItem)
 	{
-		$(Palette[ActivePaletteItem.y]).addClass("paletteselected");
+		$(Palette[ActivePaletteItem.y]).addClass("paletteSelected");
 	}
 }
 
@@ -450,8 +495,8 @@ function SetActivePaletteItem(y)
 	previtem.y = ActivePaletteItem.y;
 	ActivePaletteItem = PaletteItems[y].select;
 	ActivePaletteItem.y = y;
-	$(Palette[ActivePaletteItem.y]).addClass("paletteselected");
-	$(Palette[previtem.y]).removeClass("paletteselected");
+	$(Palette[ActivePaletteItem.y]).addClass("paletteSelected");
+	$(Palette[previtem.y]).removeClass("paletteSelected");
 }
 
 
@@ -460,10 +505,10 @@ function DrawPath(path,map,pos,agent)
 {
 	var dx = Getdx(path[0]);
 	var dy = Getdy(path[0]);
-	var nextpos = {x: pos.x + dx, y: pos.y + dy};
-	map[nextpos.y][nextpos.x].contents.push(agent);
+	var nextPos = {x: pos.x + dx, y: pos.y + dy};
+	map[nextPos.y][nextPos.x].contents.push(agent);
 	map[pos.y][pos.x].contents.pop();
-	return nextpos;
+	return nextPos;
 }
 
 /*Update the Screen with data from the Map, and draw graphics*/
@@ -479,32 +524,35 @@ function UpdateScreen()
 }
 
 /*Insert the graphics from map coordinates to screen coordinates*/
-function DrawTile(screenpos, maptile)
+function DrawTile(screenPos, mapTile)
 {
-	var screenposclasses = $(screenpos).attr("class").split(" ");
-	var maptileclasses = ["mapcolumn"];
-	maptileclasses.push(maptile.appearance);
-	if (maptile.contents && (maptile.contents.length >= 1)) 
+	var screenPosClasses = $(screenPos).attr("class").split(" ");
+	var mapTileClasses = ["mapColumn"];
+	mapTileClasses.push(mapTile.appearance);
+	if (mapTile.contents && (mapTile.contents.length >= 1)) 
 	{
-		maptileclasses.push(maptile.contents[0].appearance);
-		if (maptile.contents[0].selected)
+		mapTileClasses.push(mapTile.contents[0].appearance);
+		for (var i = 0; i < mapTile.contents.length; i++)
 		{
-			maptileclasses.push("mapselected");
+			if (mapTile.contents[i].selected)
+			{
+				mapTileClasses.push("mapSelected");
+			}
 		}
 	}
-	if (maptileclasses.length != screenposclasses.length)
+	if (mapTileClasses.length != screenPosClasses.length)
 	{
-		$(screenpos).removeClass();
-		$(screenpos).addClass(maptileclasses.join(" "));
+		$(screenPos).removeClass();
+		$(screenPos).addClass(mapTileClasses.join(" "));
 	}
 	else
 	{
-		for (var i = 0; i < maptileclasses.length; i ++)
+		for (var i = 0; i < mapTileClasses.length; i ++)
 		{
-			if (maptileclasses[i] != screenposclasses[i])
+			if (mapTileClasses[i] != screenPosClasses[i])
 			{
-				$(screenpos).removeClass();
-				$(screenpos).addClass(maptileclasses.join(" "));
+				$(screenPos).removeClass();
+				$(screenPos).addClass(mapTileClasses.join(" "));
 				break;
 			}
 		}
