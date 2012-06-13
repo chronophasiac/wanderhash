@@ -12,17 +12,21 @@ function AsciiArtToMap(map)
 			switch (map[iy][ix])
 			{
 				case " ":
-					tile = new Empty(iy, ix);
+					tile = new Empty;
+					tile.pos(iy,ix);
 					break;
 				case "#":
-					tile = new Wall(iy, ix);
+					tile = new Wall;
+					tile.pos(iy,ix);
 					break;
 				case "@":
-					tile = new Empty(iy, ix);
+					tile = new Empty;
+					tile.pos(iy,ix);
 					tile.contents = new Agent;
 					break;
 				default:
-					tile = new Empty(iy, ix);
+					tile = new Empty;
+					tile.pos(iy,ix);
 					console.log("AsciiArtToMap error");
 					break;
 			}
@@ -92,16 +96,26 @@ function TestMap()
 var Agents = [];
 var ConstructionSites = [];
 
-var Empty = function(y, x)
+function MapObject()
+{
+	this.contents = [];
+	this.effect = null;
+}
+MapObject.prototype.pos = function(y, x)
 {
 	this.pos = 
 	{
 		y: y,
 		x: x,
 	}
-	this.contents = [];
-	this.effect = null;
 }
+
+function Empty()
+{
+	MapObject.call(this)
+}
+Empty.prototype = new MapObject();
+Empty.prototype.constructor = Empty;
 Empty.prototype.appearance = "empty";
 Empty.prototype.type = Empty;
 Empty.prototype.walkable = true;
@@ -109,32 +123,25 @@ Empty.prototype.placeOn = true;
 Empty.prototype.description = "empty space";
 Empty.prototype.workUnitsToBuild = 500; 
 
-var Wall = function (y, x)
+function Wall()
 {
-	this.pos = 
-	{
-		y: y,
-		x: x,
-	}
-	this.contents = [];
-	this.effect = null;
+	MapObject.call(this)
 }
+Wall.prototype = new MapObject();
+Wall.prototype.constructor = Wall;
 Wall.prototype.appearance = "wall";
 Wall.prototype.type = Wall;
 Wall.prototype.walkable = false;
 Wall.prototype.description = "wall";
 Wall.prototype.workUnitsToBuild = 500;
 
-var Agent = function(y, x)
+function Agent()
 {
+	MapObject.call(this);
 	this.moveTo = null;
-	this.pos = 
-	{
-		y: y,
-		x: x,
-	}
-	this.effect = null;
 }
+Agent.prototype = new MapObject();
+Agent.prototype.constructor = Agent;
 Agent.prototype.appearance = "agent";
 Agent.prototype.type = Agent;
 Agent.prototype.selectable = true;
@@ -192,17 +199,12 @@ Agent.prototype.tick = function()
 	}
 }
 
-var UnderConstruction = function(y, x)
+function UnderConstruction()
 {
-	this.pos = 
-	{
-		y: y,
-		x: x,
-	}
-	this.contents = [];
-	this.effect = null;
+	MapObject.call(this);
 }
-//UnderConstruction.prototype.appearance = "underConstruction";
+UnderConstruction.prototype = new MapObject();
+UnderConstruction.prototype.constructor = UnderConstruction;
 UnderConstruction.prototype.walkable = false;
 UnderConstruction.prototype.type = UnderConstruction;
 UnderConstruction.prototype.selectable = false;
@@ -533,14 +535,17 @@ function AddToMap(object, y, x)
 		case Agent:
 			if (Map[y][x].placeOn && Map[y][x].contents.length == 0) 
 			{
-				var agent = new Agent(y, x);
+				var agent = new Agent;
+				agent.pos(y, x);
 				Map[y][x].contents.push(agent);
 				Agents.push(agent);
 			}
 			break;
 		default:
 			{
-				Map[y][x] = new object(y, x);
+				var object = new object;
+				object.pos(y, x);
+				Map[y][x] = object;
 			}
 	}
 }
@@ -550,7 +555,8 @@ function BuildObject(object, y, x)
 	var test = new object;
 	if (Map[y][x].contents.length == 0 && (Map[y][x].type != test.type))
 	{
-		var constructionSite = new UnderConstruction(y, x);
+		var constructionSite = new UnderConstruction;
+		constructionSite.pos(y, x);
 		constructionSite.currWorkUnits = 0;
 		constructionSite.maxWorkUnits = object.prototype.workUnitsToBuild;
 		constructionSite.onCompletion = object;
@@ -575,7 +581,9 @@ function DeleteFromMap(y, x)
 	{
 		UntrackDynamicObject(Map[y][x]);
 	}
-	Map[y][x] = new Empty;
+	var empty = new Empty;
+	empty.pos(y, x);
+	Map[y][x] = empty;
 }
 
 function UntrackDynamicObject(object)
