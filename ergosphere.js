@@ -1,4 +1,5 @@
 //Test functions
+
 function AsciiArtToMap(map)
 {
 	var mapColumnArray = [];
@@ -11,17 +12,17 @@ function AsciiArtToMap(map)
 			switch (map[iy][ix])
 			{
 				case " ":
-					tile = new Empty;
+					tile = new Empty(iy, ix);
 					break;
 				case "#":
-					tile = new Wall;
+					tile = new Wall(iy, ix);
 					break;
 				case "@":
-					tile = new Empty;
+					tile = new Empty(iy, ix);
 					tile.contents = new Agent;
 					break;
 				default:
-					tile = new Empty;
+					tile = new Empty(iy, ix);
 					console.log("AsciiArtToMap error");
 					break;
 			}
@@ -85,146 +86,22 @@ function TestMap()
 	return {map:map, start:start, end:end};
 }
 
-function CompareDist(a,b)
-{
-	return a.dist - b.dist;
-}
-
-
-//Pathfinding functions
-function Getdx(dirname)
-{
-	switch (dirname)
-	{
-		case "north":
-		case "south":
-			return 0;
-		case "northeast":
-		case "east":
-		case "southeast":
-			return 1;
-		case "southwest":
-		case "west":
-		case "northwest":
-			return -1;
-	}
-}
-
-function Getdy(dirname)
-{
-	switch (dirname)
-	{
-		case "east":
-		case "west":
-			return 0;
-		case "north":
-		case "northeast":
-		case "northwest":
-			return -1;
-		case "south":
-		case "southeast":
-		case "southwest":
-			return 1;
-	}
-}
-
-function ReverseDir(dirname)
-{
-	switch (dirname)
-	{
-		case "north":
-			return "south";
-		case "northeast":
-			return "southwest";
-		case "east":
-			return "west";
-		case "southeast":
-			return "northwest";
-		case "south":
-			return "north";
-		case "southwest":
-			return "northeast";
-		case "west":
-			return "east";
-		case "northwest":
-			return "southeast";
-		default:
-			console.log("ReverseDir error");
-			break;
-	}
-}
-
-function Pathflinder(originalMap,start,end)
-{
-	var map = [];
-	for (var iy = 0; iy < originalMap.length; iy++)
-	{
-		map.push({});
-	}
-	map[start.y][start.x] = 0;
-	var frontier = [{dist: 0, x: start.x, y: start.y}];
-	while (frontier.length > 0)
-	{
-		var dirs = GetRandomDirs();
-		for (i = 0; i < dirs.length; i++)
-		{
-			var dx = Getdx(dirs[i]);
-			var dy = Getdy(dirs[i]);
-			var visited = {dist: (map[frontier[0].y][frontier[0].x]) + 1, x:frontier[0].x + dx, y:frontier[0].y + dy};
-			var visitedContents = originalMap[frontier[0].y + dy][frontier[0].x + dx];
-			if ((visited.x >= 0) && (visited.y <= originalMap.length)
-					&& (visited.y >= 0) && (visited.x <= originalMap[0].length)
-					&& originalMap[frontier[0].y + dy][frontier[0].x + dx].walkable
-					&& typeof map[frontier[0].y + dy][frontier[0].x + dx] == "undefined") 
-			{
-				map[visited.y][visited.x] = visited.dist;
-				frontier.push(visited);
-			}
-		}
-		frontier.shift();
-		frontier.sort(CompareDist);
-	}
-	if (typeof map[end.y][end.x] == "undefined") return false;
-	var pos = end;
-	var path = [];
-	while (map[pos.y][pos.x] != 0)
-	{
-		var dirs = GetRandomDirs();
-		for (i = 0; i < dirs.length; i++)
-		{
-			var dx = Getdx(dirs[i]);
-			var dy = Getdy(dirs[i]);
-			var nextPos = {x: pos.x + dx, y: pos.y + dy};
-			var nextPosTile = map[nextPos.y][nextPos.x]; 
-			if ((typeof nextPosTile != "undefined") && (nextPosTile < map[pos.y][pos.x]))
-			{
-				path.push(ReverseDir(dirs[i]));
-				pos = nextPos;
-				break;
-			}
-		}
-	}
-	path = path.reverse();
-	return path;
-}
-
 
 //Initialize
-var Agents = [];
 
-var Constructions = [];
+var Agents = [];
+var ConstructionSites = [];
 
 var Empty = function(y, x)
 {
 	this.pos = 
 	{
+		y: y,
 		x: x,
-		y: y
 	}
 	this.contents = [];
 	this.effect = null;
 }
-
 Empty.prototype.appearance = "empty";
 Empty.prototype.type = Empty;
 Empty.prototype.walkable = true;
@@ -236,13 +113,12 @@ var Wall = function (y, x)
 {
 	this.pos = 
 	{
+		y: y,
 		x: x,
-		y: y
 	}
 	this.contents = [];
 	this.effect = null;
 }
-
 Wall.prototype.appearance = "wall";
 Wall.prototype.type = Wall;
 Wall.prototype.walkable = false;
@@ -254,12 +130,11 @@ var Agent = function(y, x)
 	this.moveTo = null;
 	this.pos = 
 	{
+		y: y,
 		x: x,
-		y: y
 	}
 	this.effect = null;
 }
-
 Agent.prototype.appearance = "agent";
 Agent.prototype.type = Agent;
 Agent.prototype.selectable = true;
@@ -286,9 +161,7 @@ Agent.prototype.tick = function()
 			var dirs = GetRandomDirs();
 			for (var i = 0; i < dirs.length; i++)
 			{
-				var dx = Getdx(dirs[i]);
-				var dy = Getdy(dirs[i]);
-				var nextPos = {x: this.pos.x + dx, y: this.pos.y + dy};
+				var nextPos = DirectionToPosition(dirs[i], this.pos);
 				var nextPosTile = Map[nextPos.y][nextPos.x]; 
 				if (nextPosTile.walkable && nextPosTile.contents.length == 0)
 				{
@@ -302,14 +175,12 @@ Agent.prototype.tick = function()
 	{
 		for (var i = 0; i < AllDirs.length; i++)
 		{
-			var dx = Getdx(AllDirs[i]);
-			var dy = Getdy(AllDirs[i]);
-			var nextPos = {x: this.build.pos.x + dx, y: this.build.pos.y + dy};
+			var nextPos = DirectionToPosition(AllDirs[i], this.build.pos);
 			var nextPosTile = Map[nextPos.y][nextPos.x]; 
 			var path = Pathflinder(Map,this.pos,nextPos);
 			if (nextPosTile.walkable && path)
 			{
-				var buildPos = {x: nextPos.x, y: nextPos.y};
+				var buildPos = {y: nextPos.y, x: nextPos.x};
 				this.moveTo = buildPos;
 				break;
 			}
@@ -325,19 +196,18 @@ var UnderConstruction = function(y, x)
 {
 	this.pos = 
 	{
+		y: y,
 		x: x,
-		y: y
 	}
 	this.contents = [];
 	this.effect = null;
 }
-
-UnderConstruction.prototype.appearance = "underConstruction";
+//UnderConstruction.prototype.appearance = "underConstruction";
 UnderConstruction.prototype.walkable = false;
 UnderConstruction.prototype.type = UnderConstruction;
 UnderConstruction.prototype.selectable = false;
 UnderConstruction.prototype.dynamic = true;
-UnderConstruction.prototype.dynamicTracking = Constructions;
+UnderConstruction.prototype.dynamicTracking = ConstructionSites;
 UnderConstruction.prototype.description = "something being built";
 UnderConstruction.prototype.currWorkUnits = null; 
 UnderConstruction.prototype.maxWorkUnits = null; 
@@ -346,13 +216,18 @@ UnderConstruction.prototype.tick = function()
 {
 	if (this.currWorkUnits >= this.maxWorkUnits)
 	{
-		DeleteFromMap(this.pos.x, this.pos.y);
-		AddToMap(this.onCompletion, this.pos.x, this.pos.y);
+		DeleteFromMap(this.pos.y, this.pos.x);
+		AddToMap(this.onCompletion, this.pos.y, this.pos.x);
+		Agents[0].build = null;
 	}
 	else
 	{
 		var percentDone = (this.currWorkUnits / this.maxWorkUnits) * 100;
-		if (percentDone <= 25)
+		if (percentDone === 0)
+		{
+			this.effect = "markedForConstruction";
+		}
+		else if (percentDone <= 25)
 		{
 			this.effect = "oneFourthConstructed";
 		}
@@ -368,22 +243,16 @@ UnderConstruction.prototype.tick = function()
 		{
 			this.effect = "almostConstructed";
 		}
-		Agents[0].build = this;
+		if (Agents.length > 0)
+		{
+			Agents[0].build = this;
+		}
 	}
 }
 
-var Picker =
-{
-}
-
-var Delete =
-{
-}
-
-var Inspector =
-{
-}
-
+var Picker = {};
+var Delete = {};
+var Inspector = {};
 var WallSelector =
 {
 	appearance: "wall",
@@ -413,7 +282,6 @@ var EmptySelector =
 	appearance: "emptySelector",
 	select: Empty
 }
-
 var InspectorSelector =
 {
 	appearance: "inspector",
@@ -421,17 +289,8 @@ var InspectorSelector =
 }
 
 var PaletteItems = [AgentSelector, PickerSelector, InspectorSelector, DeleteSelector, WallSelector, EmptySelector];
-
-var Map = [];
-
-var Screen = [];
-
-var Palette = [];
-
 var ActivePaletteItem = Agent;
-ActivePaletteItem.y = 0;
-
-var TextBox;
+	ActivePaletteItem.y = 0;
 
 var SelectedObject =
 {
@@ -439,29 +298,12 @@ var SelectedObject =
 	prev: null
 }
 
-
 var AllDirs = ["north", "northeast", "east", "southeast", "south", "southwest", "west", "northwest"];
 
-function GetRandomDirs()
-{
-	var dirs = [];
-	var randomDirs = [];
-	for (var i = 0; i < AllDirs.length; i++)
-	{
-		dirs.push(AllDirs[i]);
-	}
-	for (var i = 0; i < AllDirs.length; i++)
-	{
-		var diceRoll = Math.round(Math.random()*(dirs.length - 1));
-		randomDirs.push(dirs[diceRoll]);
-		if (diceRoll < dirs.length)
-		{
-			 dirs[diceRoll] = dirs[dirs.length - 1];
-		}
-		dirs.pop();
-	}
-	return randomDirs;
-}
+var Map = [];
+var Screen = [];
+var Palette = [];
+var TextBox = null;
 
 function InitMap()
 {
@@ -488,12 +330,12 @@ function InitScreen()
 		for(var ix = 0; ix < Map[iy].length; ix++)
 		{
 			var mapColumn = $('<div class="mapColumn"</div>', mapRow);
-			(function(ix, iy) {
+			(function(iy, ix) {
 				mapColumn.mousedown(function(event)
 				{
-					MapInteract(ix, iy);
+					MapInteract(iy, ix);
 				})
-			})(ix, iy);
+			})(iy, ix);
 			mapColumn.appendTo(mapRow);
 			mapColumnArray.push(mapColumn);
 		}
@@ -530,7 +372,161 @@ function InitTextBox()
 	TextBox.appendTo(textBoxPos);
 }
 
-function AddToMap(object, x, y)
+
+//Pathfinding functions
+
+function CompareDist(a,b)
+{
+	return a.dist - b.dist;
+}
+
+function Getdy(dirname)
+{
+	switch (dirname)
+	{
+		case "east":
+		case "west":
+			return 0;
+		case "north":
+		case "northeast":
+		case "northwest":
+			return -1;
+		case "south":
+		case "southeast":
+		case "southwest":
+			return 1;
+	}
+}
+
+function Getdx(dirname)
+{
+	switch (dirname)
+	{
+		case "north":
+		case "south":
+			return 0;
+		case "northeast":
+		case "east":
+		case "southeast":
+			return 1;
+		case "southwest":
+		case "west":
+		case "northwest":
+			return -1;
+	}
+}
+
+function ReverseDir(dirname)
+{
+	switch (dirname)
+	{
+		case "north":
+			return "south";
+		case "northeast":
+			return "southwest";
+		case "east":
+			return "west";
+		case "southeast":
+			return "northwest";
+		case "south":
+			return "north";
+		case "southwest":
+			return "northeast";
+		case "west":
+			return "east";
+		case "northwest":
+			return "southeast";
+		default:
+			console.log("ReverseDir error");
+			break;
+	}
+}
+
+function GetRandomDirs()
+{
+	var dirs = [];
+	var randomDirs = [];
+	for (var i = 0; i < AllDirs.length; i++)
+	{
+		dirs.push(AllDirs[i]);
+	}
+	for (var i = 0; i < AllDirs.length; i++)
+	{
+		var diceRoll = Math.round(Math.random()*(dirs.length - 1));
+		randomDirs.push(dirs[diceRoll]);
+		if (diceRoll < dirs.length)
+		{
+			 dirs[diceRoll] = dirs[dirs.length - 1];
+		}
+		dirs.pop();
+	}
+	return randomDirs;
+}
+
+function DirectionToPosition(dir, pos)
+{
+	var dy = Getdy(dir);
+	var dx = Getdx(dir);
+	var nextPos = {y: pos.y + dy, x: pos.x + dx};
+	return nextPos;
+}
+
+function Pathflinder(originalMap,start,end)
+{
+	var map = [];
+	for (var iy = 0; iy < originalMap.length; iy++)
+	{
+		map.push({});
+	}
+	map[start.y][start.x] = 0;
+	var frontier = [{dist: 0, x: start.x, y: start.y}];
+	while (frontier.length > 0)
+	{
+		var dirs = GetRandomDirs();
+		for (i = 0; i < dirs.length; i++)
+		{
+			var dy = Getdy(dirs[i]);
+			var dx = Getdx(dirs[i]);
+			var visited = {dist: (map[frontier[0].y][frontier[0].x]) + 1, x:frontier[0].x + dx, y:frontier[0].y + dy};
+			var visitedContents = originalMap[frontier[0].y + dy][frontier[0].x + dx];
+			if ((visited.x >= 0) && (visited.y <= originalMap.length)
+					&& (visited.y >= 0) && (visited.x <= originalMap[0].length)
+					&& originalMap[frontier[0].y + dy][frontier[0].x + dx].walkable
+					&& typeof map[frontier[0].y + dy][frontier[0].x + dx] == "undefined") 
+			{
+				map[visited.y][visited.x] = visited.dist;
+				frontier.push(visited);
+			}
+		}
+		frontier.shift();
+		frontier.sort(CompareDist);
+	}
+	if (typeof map[end.y][end.x] == "undefined") return false;
+	var pos = end;
+	var path = [];
+	while (map[pos.y][pos.x] != 0)
+	{
+		var dirs = GetRandomDirs();
+		for (i = 0; i < dirs.length; i++)
+		{
+			var nextPos = DirectionToPosition(dirs[i], pos);
+			var nextPosTile = map[nextPos.y][nextPos.x]; 
+			if ((typeof nextPosTile != "undefined") && (nextPosTile < map[pos.y][pos.x]))
+			{
+				path.push(ReverseDir(dirs[i]));
+				pos = nextPos;
+				break;
+			}
+		}
+	}
+	path = path.reverse();
+	return path;
+}
+
+
+//Game functions
+
+function AddToMap(object, y, x)
 {
 	switch (object)
 	{
@@ -549,7 +545,7 @@ function AddToMap(object, x, y)
 	}
 }
 
-function BuildObject(object, x, y)
+function BuildObject(object, y, x)
 {
 	var test = new object;
 	if (Map[y][x].contents.length == 0 && (Map[y][x].type != test.type))
@@ -559,11 +555,11 @@ function BuildObject(object, x, y)
 		constructionSite.maxWorkUnits = object.prototype.workUnitsToBuild;
 		constructionSite.onCompletion = object;
 		Map[y][x] = constructionSite;
-		Constructions.push(constructionSite);
+		ConstructionSites.push(constructionSite);
 	}
 }
 
-function DeleteFromMap(x, y)
+function DeleteFromMap(y, x)
 {
 	if (Map[y][x].contents.length > 0)
 	{
@@ -598,7 +594,7 @@ function UntrackDynamicObject(object)
 	}
 }
 
-function MapInteract(x, y)
+function MapInteract(y, x)
 {
 	switch (ActivePaletteItem)
 	{
@@ -616,25 +612,25 @@ function MapInteract(x, y)
 			}
 			if ((Map[y][x].contents.length == 0) && SelectedObject.curr)
 			{
-				SelectedObject.curr.moveTo = {x: x, y: y};
+				SelectedObject.curr.moveTo = {y: y, x: x};
 			}
 			break;
 		case Delete:
-			DeleteFromMap(x, y);
+			DeleteFromMap(y, x);
 			break;
 		case Inspector:
-			InspectMapTile(x, y);
+			InspectMapTile(y, x);
 			break;
 		case Agent:
-			AddToMap(ActivePaletteItem, x, y);
+			AddToMap(ActivePaletteItem, y, x);
 			break;
 		default:
-			BuildObject(ActivePaletteItem, x, y);
+			BuildObject(ActivePaletteItem, y, x);
 			break;
 	}
 }
 
-function InspectMapTile(x, y)
+function InspectMapTile(y, x)
 {
 	if (Map[y][x].contents.length > 0)
 	{
@@ -665,9 +661,7 @@ function SetActivePaletteItem(y)
 //Draw one step from the path
 function DrawPath(path,map,pos,agent)
 {
-	var dx = Getdx(path[0]);
-	var dy = Getdy(path[0]);
-	var nextPos = {x: pos.x + dx, y: pos.y + dy};
+	var nextPos = DirectionToPosition(path[0], pos);
 	map[nextPos.y][nextPos.x].contents.push(agent);
 	map[pos.y][pos.x].contents.pop();
 	return nextPos;
@@ -732,9 +726,9 @@ function RunFrame()
 	{
 		Agents[i].tick();
 	}
-	for (var i = 0; i < Constructions.length; i++)
+	for (var i = 0; i < ConstructionSites.length; i++)
 	{
-		Constructions[i].tick();
+		ConstructionSites[i].tick();
 	}
 }
 

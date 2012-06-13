@@ -162,22 +162,27 @@ body
 	text-decoration: none;
 }
 
-.oneFourthConstructed
+.markedForConstruction
 {
 	background-color: rgb(255, 255, 0)	
 }
 
-.oneHalfConstructed
+.oneFourthConstructed:before
 {
-	background-color: rgb(255, 255, 60)	
+	content: "."
 }
 
-.threeFourthsConstructed
+.oneHalfConstructed:before
 {
-	background-color: rgb(255, 255, 120)	
+	content: "o"
 }
 
-.almostConstructed
+.threeFourthsConstructed:before
 {
-	background-color: rgb(255, 255, 180)	
+	content: "O"
+}
+
+.almostConstructed:before
+{
+	content: "0"
 }
