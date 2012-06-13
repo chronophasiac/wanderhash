@@ -210,6 +210,10 @@ function Pathflinder(originalMap,start,end)
 
 
 //Initialize
+var Agents = [];
+
+var Constructions = [];
+
 var Empty = function(y, x)
 {
 	this.pos = 
@@ -222,6 +226,7 @@ var Empty = function(y, x)
 }
 
 Empty.prototype.appearance = "empty";
+Empty.prototype.type = Empty;
 Empty.prototype.walkable = true;
 Empty.prototype.placeOn = true;
 Empty.prototype.description = "empty space";
@@ -239,13 +244,14 @@ var Wall = function (y, x)
 }
 
 Wall.prototype.appearance = "wall";
+Wall.prototype.type = Wall;
 Wall.prototype.walkable = false;
 Wall.prototype.description = "wall";
 Wall.prototype.workUnitsToBuild = 500;
 
 var Agent = function(y, x)
 {
-	this.moveto = null;
+	this.moveTo = null;
 	this.pos = 
 	{
 		x: x,
@@ -259,13 +265,14 @@ Agent.prototype.type = Agent;
 Agent.prototype.selectable = true;
 Agent.prototype.selected = false;
 Agent.prototype.dynamic = true;
+Agent.prototype.dynamicTracking = Agents;
 Agent.prototype.description = "sandwich maker";
 Agent.prototype.build = null;
 Agent.prototype.tick = function()
 {
-	if (this.moveto && ((this.pos.y != this.moveto.y) || (this.pos.x != this.moveto.x)))
+	if (this.moveTo && ((this.pos.y != this.moveTo.y) || (this.pos.x != this.moveTo.x)))
 	{
-		var path = Pathflinder(Map,this.pos,this.moveto);
+		var path = Pathflinder(Map,this.pos,this.moveTo);
 		if (path) 
 		{
 			this.pos = DrawPath(path,Map,this.pos,this);
@@ -285,7 +292,7 @@ Agent.prototype.tick = function()
 				var nextPosTile = Map[nextPos.y][nextPos.x]; 
 				if (nextPosTile.walkable && nextPosTile.contents.length == 0)
 				{
-					this.moveto = nextPos;
+					this.moveTo = nextPos;
 					break;
 				}
 			}
@@ -302,12 +309,12 @@ Agent.prototype.tick = function()
 			var path = Pathflinder(Map,this.pos,nextPos);
 			if (nextPosTile.walkable && path)
 			{
-				var buildpos = {x: nextPos.x, y: nextPos.y};
-				this.moveto = buildpos;
+				var buildPos = {x: nextPos.x, y: nextPos.y};
+				this.moveTo = buildPos;
 				break;
 			}
 		}
-		if ((buildpos.y == this.pos.y) && (buildpos.x == this.pos.x))
+		if (buildPos && (buildPos.y == this.pos.y) && (buildPos.x == this.pos.x))
 		{
 			this.build.currWorkUnits += 10;
 		}
@@ -330,6 +337,7 @@ UnderConstruction.prototype.walkable = false;
 UnderConstruction.prototype.type = UnderConstruction;
 UnderConstruction.prototype.selectable = false;
 UnderConstruction.prototype.dynamic = true;
+UnderConstruction.prototype.dynamicTracking = Constructions;
 UnderConstruction.prototype.description = "something being built";
 UnderConstruction.prototype.currWorkUnits = null; 
 UnderConstruction.prototype.maxWorkUnits = null; 
@@ -360,13 +368,7 @@ UnderConstruction.prototype.tick = function()
 		{
 			this.effect = "almostConstructed";
 		}
-		for (var i = 0; i < DynamicObjects.length; i++)
-		{
-			if (DynamicObjects[i].type = Agent)
-			{
-				DynamicObjects[i].build = this;
-			}
-		}
+		Agents[0].build = this;
 	}
 }
 
@@ -406,13 +408,19 @@ var DeleteSelector =
 	select: Delete
 }
 
+var EmptySelector =
+{
+	appearance: "emptySelector",
+	select: Empty
+}
+
 var InspectorSelector =
 {
 	appearance: "inspector",
 	select: Inspector
 }
 
-var PaletteItems = [AgentSelector, PickerSelector, InspectorSelector, DeleteSelector, WallSelector];
+var PaletteItems = [AgentSelector, PickerSelector, InspectorSelector, DeleteSelector, WallSelector, EmptySelector];
 
 var Map = [];
 
@@ -431,7 +439,6 @@ var SelectedObject =
 	prev: null
 }
 
-var DynamicObjects = [];
 
 var AllDirs = ["north", "northeast", "east", "southeast", "south", "southwest", "west", "northwest"];
 
@@ -532,7 +539,7 @@ function AddToMap(object, x, y)
 			{
 				var agent = new Agent(y, x);
 				Map[y][x].contents.push(agent);
-				DynamicObjects.push(agent);
+				Agents.push(agent);
 			}
 			break;
 		default:
@@ -544,14 +551,15 @@ function AddToMap(object, x, y)
 
 function BuildObject(object, x, y)
 {
-	if (Map[y][x].placeOn && Map[y][x].contents.length == 0)
+	var test = new object;
+	if (Map[y][x].contents.length == 0 && (Map[y][x].type != test.type))
 	{
 		var constructionSite = new UnderConstruction(y, x);
 		constructionSite.currWorkUnits = 0;
 		constructionSite.maxWorkUnits = object.prototype.workUnitsToBuild;
 		constructionSite.onCompletion = object;
 		Map[y][x] = constructionSite;
-		DynamicObjects.push(constructionSite);
+		Constructions.push(constructionSite);
 	}
 }
 
@@ -576,15 +584,16 @@ function DeleteFromMap(x, y)
 
 function UntrackDynamicObject(object)
 {
-	for (var i = 0; i < DynamicObjects.length; i++)
+	var dynamicArray = object.dynamicTracking;
+	for (var i = 0; i < dynamicArray.length; i++)
 	{
-		if (object == DynamicObjects[i])
+		if (object == dynamicArray[i])
 		{
-			if (i < (DynamicObjects.length - 1))
+			if (i < (dynamicArray.length - 1))
 			{
-				DynamicObjects[i] = DynamicObjects[DynamicObjects.length - 1];
+				dynamicArray[i] = dynamicArray[dynamicArray.length - 1];
 			}
-			DynamicObjects.pop();	
+			dynamicArray.pop();	
 		}
 	}
 }
@@ -607,7 +616,7 @@ function MapInteract(x, y)
 			}
 			if ((Map[y][x].contents.length == 0) && SelectedObject.curr)
 			{
-				SelectedObject.curr.moveto = {x: x, y: y};
+				SelectedObject.curr.moveTo = {x: x, y: y};
 			}
 			break;
 		case Delete:
@@ -719,9 +728,13 @@ function DrawTile(screenPos, mapTile)
 //Get the path for the agents, then draw it.
 function RunFrame()
 {
-	for (var i = 0; i < DynamicObjects.length; i++)
+	for (var i = 0; i < Agents.length; i++)
 	{
-		DynamicObjects[i].tick();
+		Agents[i].tick();
+	}
+	for (var i = 0; i < Constructions.length; i++)
+	{
+		Constructions[i].tick();
 	}
 }
 

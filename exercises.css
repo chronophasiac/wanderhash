@@ -84,6 +84,11 @@ body
 	content: "I";
 }
 
+.emptySelector:before
+{
+	content: "_";
+}
+
 #Map
 {
 	position:fixed;
