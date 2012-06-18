@@ -146,12 +146,14 @@ Agent.prototype.appearance = "agent";
 Agent.prototype.type = Agent;
 Agent.prototype.selectable = true;
 Agent.prototype.selected = false;
-Agent.prototype.dynamic = true;
 Agent.prototype.dynamicTracking = Agents;
 Agent.prototype.description = "sandwich maker";
 Agent.prototype.build = null;
 Agent.prototype.tick = function()
 {
+	//debug
+	if (Map[this.pos.y][this.pos.x].type == UnderConstruction) console.log("Agent overlap @",this.pos.y,this.pos.x,"moveTo:",this.moveTo,"buildPos:",this.buildPos);
+	//If agent has a destination, path to the destination
 	if (this.moveTo && ((this.pos.y != this.moveTo.y) || (this.pos.x != this.moveTo.x)))
 	{
 		var path = Pathflinder(Map,this.pos,this.moveTo);
@@ -160,6 +162,7 @@ Agent.prototype.tick = function()
 			this.pos = DrawPath(path,Map,this.pos,this);
 		}
 	}
+	//If agent has no destination and there is another agent on the same tile, move in a random, walkable, unoccupied directione
 	else
 	{
 		var tileMates = Map[this.pos.y][this.pos.x].contents;
@@ -178,6 +181,42 @@ Agent.prototype.tick = function()
 			}
 		}
 	}
+	//If agent has nothing to build and there is something to build in the build queue
+	if (!this.build && ConstructionSites.length > 0)
+	{
+		//Check that everything in the build queue has a builder assigned
+		for (var i = 0; i < ConstructionSites.length; i++)
+		{
+			//If not
+			if (!ConstructionSites[i].builder)
+			{
+				//Agent is assigned as builder
+				ConstructionSites[i].builder = this;
+			}
+		}
+	}
+				/*
+				//Check that the object under construction has a populated distance array
+				if (ConstructionSites[i].distToAgents.length > 0)
+				{
+					for (var j =0; j < ConstructionSites[i].distToAgents.length; j++)
+					{
+						//If yes, check if agent is in the array
+						if (ConstructionSites[i].distToAgents[j].agent == this)
+						{
+							if (dist < ConstructionSites[i].distToAgents[j].dist
+				var path = Pathflinder(Map,this.pos,ConstructionSites[i].pos);
+				//Check that a path exists to the object under construction
+				if (path) 
+				{
+					var dist = path.length
+
+					
+					//If not, this agent is the only idle agent. Add it to the array and set it to work.
+
+
+*/
+	//If agent has something to build, determine position relative to object to be built and path there
 	if (this.build)
 	{
 		for (var i = 0; i < AllDirs.length; i++)
@@ -208,23 +247,25 @@ UnderConstruction.prototype.constructor = UnderConstruction;
 UnderConstruction.prototype.walkable = false;
 UnderConstruction.prototype.type = UnderConstruction;
 UnderConstruction.prototype.selectable = false;
-UnderConstruction.prototype.dynamic = true;
 UnderConstruction.prototype.dynamicTracking = ConstructionSites;
 UnderConstruction.prototype.description = "something being built";
 UnderConstruction.prototype.currWorkUnits = null; 
-UnderConstruction.prototype.maxWorkUnits = null; 
+UnderConstruction.prototype.workUnitsToBuild = null; 
 UnderConstruction.prototype.onCompletion = null; 
+UnderConstruction.prototype.builder = null; 
+UnderConstruction.prototype.distToAgents = DistanceToIdleAgents(this.pos);
 UnderConstruction.prototype.tick = function()
 {
-	if (this.currWorkUnits >= this.maxWorkUnits)
+	if (this.currWorkUnits >= this.workUnitsToBuild)
 	{
 		DeleteFromMap(this.pos.y, this.pos.x);
 		AddToMap(this.onCompletion, this.pos.y, this.pos.x);
-		Agents[0].build = null;
+		this.builder.build = null;
+		//Agents[0].build = null;
 	}
 	else
 	{
-		var percentDone = (this.currWorkUnits / this.maxWorkUnits) * 100;
+		var percentDone = (this.currWorkUnits / this.workUnitsToBuild) * 100;
 		if (percentDone === 0)
 		{
 			this.effect = "markedForConstruction";
@@ -245,10 +286,14 @@ UnderConstruction.prototype.tick = function()
 		{
 			this.effect = "almostConstructed";
 		}
-		if (Agents.length > 0)
+		if(this.builder && (this.builder.build != this))
+		{
+			this.builder.build = this
+		}
+		/*if (Agents.length > 0)
 		{
 			Agents[0].build = this;
-		}
+		}*/
 	}
 }
 
@@ -490,14 +535,16 @@ function Pathflinder(originalMap,start,end)
 			var dy = Getdy(dirs[i]);
 			var dx = Getdx(dirs[i]);
 			var visited = {dist: (map[frontier[0].y][frontier[0].x]) + 1, x:frontier[0].x + dx, y:frontier[0].y + dy};
-			var visitedContents = originalMap[frontier[0].y + dy][frontier[0].x + dx];
-			if ((visited.x >= 0) && (visited.y <= originalMap.length)
-					&& (visited.y >= 0) && (visited.x <= originalMap[0].length)
-					&& originalMap[frontier[0].y + dy][frontier[0].x + dx].walkable
-					&& typeof map[frontier[0].y + dy][frontier[0].x + dx] == "undefined") 
+			if ((visited.y >= 0) && (visited.y < originalMap.length)
+					&& (visited.x >= 0) && (visited.x < originalMap[visited.y].length))
 			{
-				map[visited.y][visited.x] = visited.dist;
-				frontier.push(visited);
+				var visitedContents = originalMap[frontier[0].y + dy][frontier[0].x + dx];
+				if (originalMap[frontier[0].y + dy][frontier[0].x + dx].walkable
+						&& typeof map[frontier[0].y + dy][frontier[0].x + dx] == "undefined") 
+				{
+					map[visited.y][visited.x] = visited.dist;
+					frontier.push(visited);
+				}
 			}
 		}
 		frontier.shift();
@@ -550,34 +597,20 @@ function AddToMap(object, y, x)
 	}
 }
 
-function BuildObject(object, y, x)
-{
-	var test = new object;
-	if (Map[y][x].contents.length == 0 && (Map[y][x].type != test.type))
-	{
-		var constructionSite = new UnderConstruction;
-		constructionSite.pos(y, x);
-		constructionSite.currWorkUnits = 0;
-		constructionSite.maxWorkUnits = object.prototype.workUnitsToBuild;
-		constructionSite.onCompletion = object;
-		Map[y][x] = constructionSite;
-		ConstructionSites.push(constructionSite);
-	}
-}
-
 function DeleteFromMap(y, x)
 {
 	if (Map[y][x].contents.length > 0)
 	{
 		for (var i = 0; i < Map[y][x].contents.length; i++)
 		{
-			if (Map[y][x].contents[i].dynamic)
+			if (Map[y][x].contents[i].dynamicTracking)
 			{
 				UntrackDynamicObject(Map[y][x].contents[i]);
 			}
 		}
+		Map[y][x].contents = [];
 	}
-	if (Map[y][x].dynamic)
+	if (Map[y][x].dynamicTracking)
 	{
 		UntrackDynamicObject(Map[y][x]);
 	}
@@ -600,6 +633,63 @@ function UntrackDynamicObject(object)
 			dynamicArray.pop();	
 		}
 	}
+	if (object.type == Agent && object.build && object.build.builder)
+	{
+		//debug
+		console.log ("Agent deleted@",object.pos.y,object.pos.x,'buildPos:',object.buildPos,'moveTo:',object.moveTo)
+		object.build.builder = null;
+	}
+}
+
+function BuildObject(object, y, x)
+{
+	var test = new object;
+	if (Map[y][x].contents.length == 0 && (Map[y][x].type != test.type))
+	{
+		var constructionSite = new UnderConstruction;
+		constructionSite.pos(y, x);
+		constructionSite.currWorkUnits = 0;
+		constructionSite.workUnitsToBuild = object.prototype.workUnitsToBuild;
+		constructionSite.onCompletion = object;
+		Map[y][x] = constructionSite;
+		ConstructionSites.push(constructionSite);
+	}
+}
+
+function DistanceToIdleAgents(pos)
+{
+	var distances = [];
+	for (var i = 0; i < Agents.length; i++)
+	{
+		if (!Agents[i].build)
+		{
+			var path = Pathflinder(Map, pos, Agents[i].pos);
+			if (path)
+			{
+				distances.push({agent: Agent[i], dist: path.length});
+			}
+		}
+	}
+	return distances;
+}
+
+
+function InspectMapTile(y, x)
+{
+	if (Map[y][x].contents.length > 0)
+	{
+		var tileStuff = ["Here are: " + Map[y][x].description];
+		for (var i = 0; i < Map[y][x].contents.length; i++)
+		{
+			tileStuff.push(Map[y][x].contents[i].description);
+		}
+		tileStuff = tileStuff.join(", ");
+	}
+	else
+	{
+		var tileStuff = "Here is: " + Map[y][x].description;
+	}
+	$(TextBox).text(tileStuff);
 }
 
 function MapInteract(y, x)
@@ -636,24 +726,6 @@ function MapInteract(y, x)
 			BuildObject(ActivePaletteItem, y, x);
 			break;
 	}
-}
-
-function InspectMapTile(y, x)
-{
-	if (Map[y][x].contents.length > 0)
-	{
-		var tileStuff = ["Here are: " + Map[y][x].description];
-		for (var i = 0; i < Map[y][x].contents.length; i++)
-		{
-			tileStuff.push(Map[y][x].contents[i].description);
-		}
-		tileStuff = tileStuff.join(", ");
-	}
-	else
-	{
-		var tileStuff = "Here is: " + Map[y][x].description;
-	}
-	$(TextBox).text(tileStuff);
 }
 
 function SetActivePaletteItem(y)
