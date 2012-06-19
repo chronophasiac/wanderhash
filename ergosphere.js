@@ -149,6 +149,51 @@ Agent.prototype.selected = false;
 Agent.prototype.dynamicTracking = Agents;
 Agent.prototype.description = "sandwich maker";
 Agent.prototype.build = null;
+Agent.prototype.moveOneTile = function()
+{
+	var path = Pathflinder(Map,this.pos,this.moveTo);
+	if (path) 
+	{
+		this.pos = DrawPath(path,Map,this.pos,this);
+	}
+}
+Agent.prototype.unstack = function()
+{
+	var tileMates = Map[this.pos.y][this.pos.x].contents;
+	if (tileMates && tileMates.length > 1 && tileMates[tileMates.length-1] == this)
+	{
+		var dirs = GetRandomDirs();
+		for (var i = 0; i < dirs.length; i++)
+		{
+			var nextPos = DirectionToPosition(dirs[i], this.pos);
+			var nextPosTile = Map[nextPos.y][nextPos.x]; 
+			if (nextPosTile.walkable && nextPosTile.contents.length == 0)
+			{
+				this.moveTo = nextPos;
+				break;
+			}
+		}
+	}
+}
+Agent.prototype.moveToBuildSite = function()
+{
+	for (var i = 0; i < AllDirs.length; i++)
+	{
+		var nextPos = DirectionToPosition(AllDirs[i], this.build.pos);
+		var nextPosTile = Map[nextPos.y][nextPos.x]; 
+		var path = Pathflinder(Map,this.pos,nextPos);
+		if (nextPosTile.walkable && path)
+		{
+			var buildPos = {y: nextPos.y, x: nextPos.x};
+			this.moveTo = buildPos;
+			break;
+		}
+	}
+	if (buildPos && (buildPos.y == this.pos.y) && (buildPos.x == this.pos.x))
+	{
+		this.build.currWorkUnits += 10;
+	}
+}
 Agent.prototype.tick = function()
 {
 	//debug
@@ -156,30 +201,12 @@ Agent.prototype.tick = function()
 	//If agent has a destination, path to the destination
 	if (this.moveTo && ((this.pos.y != this.moveTo.y) || (this.pos.x != this.moveTo.x)))
 	{
-		var path = Pathflinder(Map,this.pos,this.moveTo);
-		if (path) 
-		{
-			this.pos = DrawPath(path,Map,this.pos,this);
-		}
+		this.moveOneTile();
 	}
 	//If agent has no destination and there is another agent on the same tile, move in a random, walkable, unoccupied directione
 	else
 	{
-		var tileMates = Map[this.pos.y][this.pos.x].contents;
-		if (tileMates && tileMates.length > 1 && tileMates[tileMates.length-1] == this)
-		{
-			var dirs = GetRandomDirs();
-			for (var i = 0; i < dirs.length; i++)
-			{
-				var nextPos = DirectionToPosition(dirs[i], this.pos);
-				var nextPosTile = Map[nextPos.y][nextPos.x]; 
-				if (nextPosTile.walkable && nextPosTile.contents.length == 0)
-				{
-					this.moveTo = nextPos;
-					break;
-				}
-			}
-		}
+		this.unstack();
 	}
 	//If agent has nothing to build and there is something to build in the build queue
 	if (!this.build && ConstructionSites.length > 0)
@@ -219,22 +246,7 @@ Agent.prototype.tick = function()
 	//If agent has something to build, determine position relative to object to be built and path there
 	if (this.build)
 	{
-		for (var i = 0; i < AllDirs.length; i++)
-		{
-			var nextPos = DirectionToPosition(AllDirs[i], this.build.pos);
-			var nextPosTile = Map[nextPos.y][nextPos.x]; 
-			var path = Pathflinder(Map,this.pos,nextPos);
-			if (nextPosTile.walkable && path)
-			{
-				var buildPos = {y: nextPos.y, x: nextPos.x};
-				this.moveTo = buildPos;
-				break;
-			}
-		}
-		if (buildPos && (buildPos.y == this.pos.y) && (buildPos.x == this.pos.x))
-		{
-			this.build.currWorkUnits += 10;
-		}
+		this.moveToBuildSite();
 	}
 }
 
