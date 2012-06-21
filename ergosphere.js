@@ -668,6 +668,7 @@ function BuildObject(object, y, x)
 	}
 }
 
+//Calculate distance to all idle agents, to determine which to make the builder of an object
 function DistanceToIdleAgents(pos)
 {
 	var distances = [];
@@ -685,7 +686,7 @@ function DistanceToIdleAgents(pos)
 	return distances;
 }
 
-
+//Display the description for objects on a map tile
 function InspectMapTile(y, x)
 {
 	if (Map[y][x].contents.length > 0)
@@ -704,6 +705,7 @@ function InspectMapTile(y, x)
 	$(TextBox).text(tileStuff);
 }
 
+//Depending on what palette item is active, apply various effects to the map when clicked
 function MapInteract(y, x)
 {
 	switch (ActivePaletteItem)
@@ -740,6 +742,7 @@ function MapInteract(y, x)
 	}
 }
 
+//When a palette item is clicked, set a variable and draw selection effects
 function SetActivePaletteItem(y)
 {
 	var previtem = ActivePaletteItem;
@@ -750,7 +753,7 @@ function SetActivePaletteItem(y)
 	$(Palette[previtem.y]).removeClass("paletteSelected");
 }
 
-//Draw one step from the path
+//On the map, draw one step from the path
 function DrawPath(path,map,pos,agent)
 {
 	var nextPos = DirectionToPosition(path[0], pos);
@@ -759,7 +762,7 @@ function DrawPath(path,map,pos,agent)
 	return nextPos;
 }
 
-/*Update the Screen with data from the Map, and draw graphics*/
+//Draw graphics on the screen
 function UpdateScreen()
 {
 	for(var iy = 0; iy < Map.length; iy++)
@@ -771,7 +774,7 @@ function UpdateScreen()
 	}
 }
 
-/*Insert the graphics from map coordinates to screen coordinates*/
+//Get class names from map coordinates and apply them to screen coordinates
 function DrawTile(screenPos, mapTile)
 {
 	var screenPosClasses = $(screenPos).attr("class").split(" ");
@@ -811,7 +814,7 @@ function DrawTile(screenPos, mapTile)
 	}
 }
 
-//Get the path for the agents, then draw it.
+//Execute all dynamic object functions
 function RunFrame()
 {
 	for (var i = 0; i < Agents.length; i++)
