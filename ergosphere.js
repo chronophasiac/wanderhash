@@ -1,5 +1,6 @@
 //Test functions
 
+//Convert ASCII art to a 2D array
 function AsciiArtToMap(map)
 {
 	var mapColumnArray = [];
@@ -37,6 +38,7 @@ function AsciiArtToMap(map)
 	return mapColumnArray;
 }
 
+//Convert a 2D array to a human readable ASCII map
 function MapToAsciiArt(map)
 {
 	var mapColumnString = [];
@@ -71,6 +73,7 @@ function MapToAsciiArt(map)
 	console.log(mapColumnString.join(""));
 }
 
+//A small map for dev use
 function TestMap()
 {
 	var map = [
@@ -96,6 +99,7 @@ function TestMap()
 var Agents = [];
 var ConstructionSites = [];
 
+//The parent class for any object that is displayed on the main screen
 function MapObject()
 {
 	this.contents = [];
@@ -110,6 +114,7 @@ MapObject.prototype.pos = function(y, x)
 	}
 }
 
+//An object representing a floor, and nothing else
 function Empty()
 {
 	MapObject.call(this)
@@ -123,6 +128,7 @@ Empty.prototype.placeOn = true;
 Empty.prototype.description = "empty space";
 Empty.prototype.workUnitsToBuild = 500; 
 
+//An object representing a modular wall section
 function Wall()
 {
 	MapObject.call(this)
@@ -135,6 +141,7 @@ Wall.prototype.walkable = false;
 Wall.prototype.description = "wall";
 Wall.prototype.workUnitsToBuild = 500;
 
+//A basic creature
 function Agent()
 {
 	MapObject.call(this);
@@ -250,6 +257,7 @@ Agent.prototype.tick = function()
 	}
 }
 
+//An object representing a construction marker or a partially constructed object
 function UnderConstruction()
 {
 	MapObject.call(this);
@@ -318,6 +326,7 @@ var WallSelector =
 	select: Wall
 }
 
+//Selectors used by the palette
 var AgentSelector =
 {
 	appearance: "agent",
@@ -347,7 +356,9 @@ var InspectorSelector =
 	select: Inspector
 }
 
+//Initialize the palette with the following items
 var PaletteItems = [AgentSelector, PickerSelector, InspectorSelector, DeleteSelector, WallSelector, EmptySelector];
+//And set the default active palette item
 var ActivePaletteItem = Agent;
 	ActivePaletteItem.y = 0;
 
@@ -364,6 +375,7 @@ var Screen = [];
 var Palette = [];
 var TextBox = null;
 
+//Initialize the map, representing the entire game universe
 function InitMap()
 {
 	var devMap = AsciiArtToMap(TestMap().map);
@@ -378,6 +390,7 @@ function InitMap()
 	}
 }
 
+//Initialize the main screen, a view on the map
 function InitScreen()
 {
 	for(var iy = 0; iy < Map.length; iy++)
@@ -402,6 +415,7 @@ function InitScreen()
 	}
 }
 
+//Initialize a palette to select how to interact with the main screen
 function InitPalette()
 {
 	for (var iy = 0; iy < PaletteItems.length; iy++)
@@ -424,6 +438,7 @@ function InitPalette()
 	}
 }
 
+//Initialize the text box which provides textual feedback
 function InitTextBox()
 {
 	TextBox = $('<div class="textRow"></div>');
@@ -434,11 +449,13 @@ function InitTextBox()
 
 //Pathfinding functions
 
+//Used by the sorting function to keep the frontier sorted
 function CompareDist(a,b)
 {
 	return a.dist - b.dist;
 }
 
+//Convert an English word into coordinate differentials on the y axis
 function Getdy(dirname)
 {
 	switch (dirname)
@@ -457,6 +474,7 @@ function Getdy(dirname)
 	}
 }
 
+//Convert an English word into coordinate differentials on the x axis
 function Getdx(dirname)
 {
 	switch (dirname)
@@ -475,6 +493,7 @@ function Getdx(dirname)
 	}
 }
 
+//Return the opposite direction for an English direction
 function ReverseDir(dirname)
 {
 	switch (dirname)
@@ -501,6 +520,7 @@ function ReverseDir(dirname)
 	}
 }
 
+//Returns an array of randomized directions
 function GetRandomDirs()
 {
 	var dirs = [];
@@ -522,6 +542,7 @@ function GetRandomDirs()
 	return randomDirs;
 }
 
+//Return the x and y value for a position when it is transformed by a direction
 function DirectionToPosition(dir, pos)
 {
 	var dy = Getdy(dir);
@@ -530,6 +551,7 @@ function DirectionToPosition(dir, pos)
 	return nextPos;
 }
 
+//For a map, return an array of directions representing a path from start to end. If no path, return false.
 function Pathflinder(originalMap,start,end)
 {
 	var map = [];
@@ -587,6 +609,7 @@ function Pathflinder(originalMap,start,end)
 
 //Game functions
 
+//Add an object to the map
 function AddToMap(object, y, x)
 {
 	switch (object)
@@ -609,6 +632,7 @@ function AddToMap(object, y, x)
 	}
 }
 
+//Delete an object from the map
 function DeleteFromMap(y, x)
 {
 	if (Map[y][x].contents.length > 0)
@@ -631,6 +655,7 @@ function DeleteFromMap(y, x)
 	Map[y][x] = empty;
 }
 
+//If an object is being tracked i.e. it has a tick function, remove all references to that object
 function UntrackDynamicObject(object)
 {
 	var dynamicArray = object.dynamicTracking;
@@ -653,6 +678,7 @@ function UntrackDynamicObject(object)
 	}
 }
 
+//Instantiate a construction site object representing the object to be built
 function BuildObject(object, y, x)
 {
 	var test = new object;
@@ -827,6 +853,7 @@ function RunFrame()
 	}
 }
 
+//The event loop
 function Tick()
 {
 	RunFrame();
