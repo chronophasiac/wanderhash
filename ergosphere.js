@@ -156,6 +156,11 @@ Agent.prototype.selected = false;
 Agent.prototype.dynamicTracking = Agents;
 Agent.prototype.description = "sandwich maker";
 Agent.prototype.build = null;
+Agent.prototype.onDelete = function()
+{
+	RemoveObjectFromArray(this, Agents);
+	this.build.builder = null;
+}
 Agent.prototype.moveOneTile = function()
 {
 	var path = Pathflinder(Map,this.pos,this.moveTo);
@@ -184,18 +189,36 @@ Agent.prototype.unstack = function()
 }
 Agent.prototype.moveToBuildSite = function()
 {
+	//Accumulate an array of valid build positions
+	var destinationArray = []
 	for (var i = 0; i < AllDirs.length; i++)
 	{
 		var nextPos = DirectionToPosition(AllDirs[i], this.build.pos);
 		var nextPosTile = Map[nextPos.y][nextPos.x]; 
-		var path = Pathflinder(Map,this.pos,nextPos);
-		if (nextPosTile.walkable && path)
+		if (nextPosTile.walkable)
 		{
-			var buildPos = {y: nextPos.y, x: nextPos.x};
-			this.moveTo = buildPos;
-			break;
+			destinationArray.push({y: nextPos.y, x: nextPos.x});
 		}
 	}
+	//If there are valid build positions, find the closest, unoccupied one and set it as the destination
+	if (destinationArray.length > 0)
+	{
+		SortEndPositions(Map, this.pos, destinationArray);
+		for (var i = 0; i < destinationArray.length; i++)
+		{
+			if (IsTileVacant(destinationArray[i], this, Agent))
+			{
+				var buildPos = destinationArray[i];
+				break;
+			}
+		}
+		if (!buildPos)
+		{
+			var buildPos = destinationArray[0];
+		}
+		this.moveTo = buildPos;
+	}
+	//If the agent is at the build position, add work units to the construction
 	if (buildPos && (buildPos.y == this.pos.y) && (buildPos.x == this.pos.x))
 	{
 		this.build.currWorkUnits += 10;
@@ -274,13 +297,18 @@ UnderConstruction.prototype.workUnitsToBuild = null;
 UnderConstruction.prototype.onCompletion = null; 
 UnderConstruction.prototype.builder = null; 
 UnderConstruction.prototype.distToAgents = DistanceToIdleAgents(this.pos);
+UnderConstruction.prototype.onDelete = function()
+{
+	RemoveObjectFromArray(this, ConstructionSites);
+	this.builder.build = null;
+}
 UnderConstruction.prototype.tick = function()
 {
 	if (this.currWorkUnits >= this.workUnitsToBuild)
 	{
-		DeleteFromMap(this.pos.y, this.pos.x);
-		AddToMap(this.onCompletion, this.pos.y, this.pos.x);
-		this.builder.build = null;
+		MutateObject(this, this.onCompletion);
+		//DeleteFromMap(this.pos.y, this.pos.x);
+		//AddToMap(this.onCompletion, this.pos.y, this.pos.x);
 		//Agents[0].build = null;
 	}
 	else
@@ -606,8 +634,43 @@ function Pathflinder(originalMap,start,end)
 	return path;
 }
 
+//Takes a map, a starting position, and an array of end positions. Returns the array of reachable end positions sorted by distance.
+function SortEndPositions(map, startPos, endPosArray)
+{
+	for (var i = 0; i < endPosArray.length; i++)
+	{
+		var path = Pathflinder(map,startPos,endPosArray[i]);
+		if (path)
+		{
+			endPosArray[i].dist = path.length
+		}
+		else
+		{
+			RemoveObjectFromArray(endPosArray[i], endPosArray)
+		}
+	}
+	endPosArray.sort(CompareDist);
+	return endPosArray
+}
+
 
 //Game functions
+
+//Locates object in an array, and removes it
+function RemoveObjectFromArray(object, array)
+{
+	for (var i = 0; i < array.length; i++)
+	{
+		if (object === array[i])
+		{
+			if (i < (array.length - 1))
+			{
+				array[i] = array[array.length - 1];
+			}
+			array.pop();	
+		}
+	}
+}
 
 //Add an object to the map
 function AddToMap(object, y, x)
@@ -655,6 +718,19 @@ function DeleteFromMap(y, x)
 	Map[y][x] = empty;
 }
 
+//Mutate an object into another object
+function MutateObject(oldObject, newObject)
+{
+	var mutated = new newObject;
+	var y = oldObject.pos.y;
+	var x = oldObject.pos.x;
+	mutated.pos.y = y;
+	mutated.pos.x = x;
+	mutated.contents = oldObject.contents;
+	if (oldObject.onDelete) oldObject.onDelete();
+	Map[y][x] = mutated;
+}
+
 //If an object is being tracked i.e. it has a tick function, remove all references to that object
 function UntrackDynamicObject(object)
 {
@@ -694,6 +770,18 @@ function BuildObject(object, y, x)
 	}
 }
 
+//Takes a location and an object, and returns true if there are no check objects at the location, or if and only if the object is at the location. Returns false otherwise.
+function IsTileVacant(loc, thisObject, checkObject)
+{
+	var tile = Map[loc.y][loc.x];
+	if (tile.contents.length == 0) return true;
+	for (var i = 0; i < tile.contents.length; i++)
+	{
+		if ((tile.contents[i].type == checkObject) && (tile.contents[i] != thisObject)) return false;
+	}
+	return true;
+}
+		
 //Calculate distance to all idle agents, to determine which to make the builder of an object
 function DistanceToIdleAgents(pos)
 {
