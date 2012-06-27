@@ -159,7 +159,7 @@ Agent.prototype.build = null;
 Agent.prototype.onDelete = function()
 {
 	RemoveObjectFromArray(this, Agents);
-	this.build.builder = null;
+	this.build = null;
 }
 Agent.prototype.moveOneTile = function()
 {
@@ -200,10 +200,11 @@ Agent.prototype.moveToBuildSite = function()
 			destinationArray.push({y: nextPos.y, x: nextPos.x});
 		}
 	}
+	//Sort the build positions by distance
+	destinationArray = SortPositionsByDistance(Map, this.pos, destinationArray);
 	//If there are valid build positions, find the closest, unoccupied one and set it as the destination
 	if (destinationArray.length > 0)
 	{
-		SortEndPositions(Map, this.pos, destinationArray);
 		for (var i = 0; i < destinationArray.length; i++)
 		{
 			if (IsTileVacant(destinationArray[i], this, Agent))
@@ -218,6 +219,12 @@ Agent.prototype.moveToBuildSite = function()
 		}
 		this.moveTo = buildPos;
 	}
+	//If there are no valid build positions, remove agent as the builder
+	else 
+	{
+		this.build = null;
+		this.moveTo = null;
+	}
 	//If the agent is at the build position, add work units to the construction
 	if (buildPos && (buildPos.y == this.pos.y) && (buildPos.x == this.pos.x))
 	{
@@ -226,31 +233,60 @@ Agent.prototype.moveToBuildSite = function()
 }
 Agent.prototype.tick = function()
 {
-	//debug
-	if (Map[this.pos.y][this.pos.x].type == UnderConstruction) console.log("Agent overlap @",this.pos.y,this.pos.x,"moveTo:",this.moveTo,"buildPos:",this.buildPos);
+	//If agent has something to build, determine target position relative to object to be built and path there
+	if (this.build)
+	{
+		this.moveToBuildSite();
+	}
 	//If agent has a destination, path to the destination
 	if (this.moveTo && ((this.pos.y != this.moveTo.y) || (this.pos.x != this.moveTo.x)))
 	{
 		this.moveOneTile();
+	}
+	//If agent has nothing to build and there is something to build in the build queue
+	else if (!this.build && ConstructionSites.length > 0)
+	{
+		var sites = [];
+		//Check that something in the build queue has a builder assigned
+		for (var i = 0; i < ConstructionSites.length; i++)
+		{
+			//If there is no assigned builder, accumulate an array of construction sites
+			var hasBuilder = false;
+			for (var j = 0; j < Agents.length; j++)
+			{
+				if (Agents[j].build == ConstructionSites[i])
+				{
+					hasBuilder = true;
+					break;
+				}
+			}
+			if (!hasBuilder)
+			{
+				sites.push(ConstructionSites[i].pos)
+			}
+		}
+		//If there is an array of construction sites, sort it by distance and assign the agent to the closest site
+		if (sites.length > 0)
+		{
+			if (sites.length == 1)
+			{
+				this.build = Map[sites[0].y][sites[0].x];
+			}
+			else
+			{
+				SortPositionsByDistance(Map, this.pos, sites);
+				this.build = Map[sites[0].y][sites[0].x];
+			}
+		}
 	}
 	//If agent has no destination and there is another agent on the same tile, move in a random, walkable, unoccupied directione
 	else
 	{
 		this.unstack();
 	}
-	//If agent has nothing to build and there is something to build in the build queue
-	if (!this.build && ConstructionSites.length > 0)
+	if (this.moveTo && ((this.pos.y == this.moveTo.y) && (this.pos.x == this.moveTo.x)))
 	{
-		//Check that everything in the build queue has a builder assigned
-		for (var i = 0; i < ConstructionSites.length; i++)
-		{
-			//If not
-			if (!ConstructionSites[i].builder)
-			{
-				//Agent is assigned as builder
-				ConstructionSites[i].builder = this;
-			}
-		}
+		this.moveTo = null;
 	}
 				/*
 				//Check that the object under construction has a populated distance array
@@ -273,11 +309,6 @@ Agent.prototype.tick = function()
 
 
 */
-	//If agent has something to build, determine position relative to object to be built and path there
-	if (this.build)
-	{
-		this.moveToBuildSite();
-	}
 }
 
 //An object representing a construction marker or a partially constructed object
@@ -295,18 +326,24 @@ UnderConstruction.prototype.description = "something being built";
 UnderConstruction.prototype.currWorkUnits = null; 
 UnderConstruction.prototype.workUnitsToBuild = null; 
 UnderConstruction.prototype.onCompletion = null; 
-UnderConstruction.prototype.builder = null; 
 UnderConstruction.prototype.distToAgents = DistanceToIdleAgents(this.pos);
 UnderConstruction.prototype.onDelete = function()
 {
 	RemoveObjectFromArray(this, ConstructionSites);
-	this.builder.build = null;
+	//Remove construction site from agent build assignments
+	for (var i = 0; i < Agents.length; i++)
+	{
+		if (Agents[i].build == this)
+		{
+			Agents[i].build = null;
+		}
+	}
 }
 UnderConstruction.prototype.tick = function()
 {
 	if (this.currWorkUnits >= this.workUnitsToBuild)
 	{
-		MutateObject(this, this.onCompletion);
+		MutateMapObject(this, this.onCompletion);
 		//DeleteFromMap(this.pos.y, this.pos.x);
 		//AddToMap(this.onCompletion, this.pos.y, this.pos.x);
 		//Agents[0].build = null;
@@ -333,10 +370,6 @@ UnderConstruction.prototype.tick = function()
 		else if (percentDone > 75)
 		{
 			this.effect = "almostConstructed";
-		}
-		if(this.builder && (this.builder.build != this))
-		{
-			this.builder.build = this
 		}
 		/*if (Agents.length > 0)
 		{
@@ -634,8 +667,9 @@ function Pathflinder(originalMap,start,end)
 	return path;
 }
 
-//Takes a map, a starting position, and an array of end positions. Returns the array of reachable end positions sorted by distance.
-function SortEndPositions(map, startPos, endPosArray)
+//Takes a map, a starting position, and an array of end positions. 
+//Returns an array of reachable end positions and the distance to each position
+function SortPositionsByDistance(map, startPos, endPosArray)
 {
 	for (var i = 0; i < endPosArray.length; i++)
 	{
@@ -702,16 +736,16 @@ function DeleteFromMap(y, x)
 	{
 		for (var i = 0; i < Map[y][x].contents.length; i++)
 		{
-			if (Map[y][x].contents[i].dynamicTracking)
+			if (Map[y][x].contents[i].onDelete)
 			{
-				UntrackDynamicObject(Map[y][x].contents[i]);
+				Map[y][x].contents[i].onDelete();
 			}
 		}
 		Map[y][x].contents = [];
 	}
-	if (Map[y][x].dynamicTracking)
+	if (Map[y][x].onDelete)
 	{
-		UntrackDynamicObject(Map[y][x]);
+		Map[y][x].onDelete();
 	}
 	var empty = new Empty;
 	empty.pos(y, x);
@@ -719,7 +753,7 @@ function DeleteFromMap(y, x)
 }
 
 //Mutate an object into another object
-function MutateObject(oldObject, newObject)
+function MutateMapObject(oldObject, newObject)
 {
 	var mutated = new newObject;
 	var y = oldObject.pos.y;
@@ -729,29 +763,6 @@ function MutateObject(oldObject, newObject)
 	mutated.contents = oldObject.contents;
 	if (oldObject.onDelete) oldObject.onDelete();
 	Map[y][x] = mutated;
-}
-
-//If an object is being tracked i.e. it has a tick function, remove all references to that object
-function UntrackDynamicObject(object)
-{
-	var dynamicArray = object.dynamicTracking;
-	for (var i = 0; i < dynamicArray.length; i++)
-	{
-		if (object == dynamicArray[i])
-		{
-			if (i < (dynamicArray.length - 1))
-			{
-				dynamicArray[i] = dynamicArray[dynamicArray.length - 1];
-			}
-			dynamicArray.pop();	
-		}
-	}
-	if (object.type == Agent && object.build && object.build.builder)
-	{
-		//debug
-		console.log ("Agent deleted@",object.pos.y,object.pos.x,'buildPos:',object.buildPos,'moveTo:',object.moveTo)
-		object.build.builder = null;
-	}
 }
 
 //Instantiate a construction site object representing the object to be built
