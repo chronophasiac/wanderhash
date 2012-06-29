@@ -201,7 +201,10 @@ Agent.prototype.moveToBuildSite = function()
 		}
 	}
 	//Sort the build positions by distance
-	destinationArray = SortPositionsByDistance(Map, this.pos, destinationArray);
+	if (destinationArray.length > 1)
+	{
+		destinationArray = SortPositionsByDistance(Map, this.pos, destinationArray);
+	}
 	//If there are valid build positions, find the closest, unoccupied one and set it as the destination
 	if (destinationArray.length > 0)
 	{
@@ -288,27 +291,6 @@ Agent.prototype.tick = function()
 	{
 		this.moveTo = null;
 	}
-				/*
-				//Check that the object under construction has a populated distance array
-				if (ConstructionSites[i].distToAgents.length > 0)
-				{
-					for (var j =0; j < ConstructionSites[i].distToAgents.length; j++)
-					{
-						//If yes, check if agent is in the array
-						if (ConstructionSites[i].distToAgents[j].agent == this)
-						{
-							if (dist < ConstructionSites[i].distToAgents[j].dist
-				var path = Pathflinder(Map,this.pos,ConstructionSites[i].pos);
-				//Check that a path exists to the object under construction
-				if (path) 
-				{
-					var dist = path.length
-
-					
-					//If not, this agent is the only idle agent. Add it to the array and set it to work.
-
-
-*/
 }
 
 //An object representing a construction marker or a partially constructed object
@@ -326,7 +308,6 @@ UnderConstruction.prototype.description = "something being built";
 UnderConstruction.prototype.currWorkUnits = null; 
 UnderConstruction.prototype.workUnitsToBuild = null; 
 UnderConstruction.prototype.onCompletion = null; 
-UnderConstruction.prototype.distToAgents = DistanceToIdleAgents(this.pos);
 UnderConstruction.prototype.onDelete = function()
 {
 	RemoveObjectFromArray(this, ConstructionSites);
@@ -344,9 +325,6 @@ UnderConstruction.prototype.tick = function()
 	if (this.currWorkUnits >= this.workUnitsToBuild)
 	{
 		MutateMapObject(this, this.onCompletion);
-		//DeleteFromMap(this.pos.y, this.pos.x);
-		//AddToMap(this.onCompletion, this.pos.y, this.pos.x);
-		//Agents[0].build = null;
 	}
 	else
 	{
@@ -371,10 +349,6 @@ UnderConstruction.prototype.tick = function()
 		{
 			this.effect = "almostConstructed";
 		}
-		/*if (Agents.length > 0)
-		{
-			Agents[0].build = this;
-		}*/
 	}
 }
 
@@ -729,8 +703,8 @@ function AddToMap(object, y, x)
 	}
 }
 
-//Delete an object from the map
-function DeleteFromMap(y, x)
+//Clear objects from a map tile
+function ClearMapTile(y, x)
 {
 	if (Map[y][x].contents.length > 0)
 	{
@@ -793,7 +767,7 @@ function IsTileVacant(loc, thisObject, checkObject)
 	return true;
 }
 		
-//Calculate distance to all idle agents, to determine which to make the builder of an object
+//NOT USED: Calculate distance to all idle agents, to determine which to make the builder of an object
 function DistanceToIdleAgents(pos)
 {
 	var distances = [];
@@ -853,7 +827,7 @@ function MapInteract(y, x)
 			}
 			break;
 		case Delete:
-			DeleteFromMap(y, x);
+			ClearMapTile(y, x);
 			break;
 		case Inspector:
 			InspectMapTile(y, x);
