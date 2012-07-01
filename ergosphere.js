@@ -105,6 +105,7 @@ function MapObject()
 	this.contents = [];
 	this.effect = null;
 }
+
 MapObject.prototype.pos = function(y, x)
 {
 	this.pos = 
@@ -141,6 +142,7 @@ Wall.prototype.walkable = false;
 Wall.prototype.description = "wall";
 Wall.prototype.workUnitsToBuild = 500;
 
+
 //A basic creature
 function Agent()
 {
@@ -156,11 +158,13 @@ Agent.prototype.selected = false;
 Agent.prototype.dynamicTracking = Agents;
 Agent.prototype.description = "sandwich maker";
 Agent.prototype.build = null;
-Agent.prototype.onDelete = function()
+
+Agent.prototype.destroy = function()
 {
 	RemoveObjectFromArray(this, Agents);
 	this.build = null;
 }
+
 Agent.prototype.moveOneTile = function()
 {
 	var path = Pathflinder(Map,this.pos,this.moveTo);
@@ -169,6 +173,7 @@ Agent.prototype.moveOneTile = function()
 		this.pos = DrawPath(path,Map,this.pos,this);
 	}
 }
+
 Agent.prototype.unstack = function()
 {
 	var tileMates = Map[this.pos.y][this.pos.x].contents;
@@ -187,6 +192,7 @@ Agent.prototype.unstack = function()
 		}
 	}
 }
+
 Agent.prototype.moveToBuildSite = function()
 {
 	//Accumulate an array of valid build positions
@@ -234,6 +240,44 @@ Agent.prototype.moveToBuildSite = function()
 		this.build.currWorkUnits += 10;
 	}
 }
+
+//Move agent randomly if idle
+Agent.prototype.wander = function()
+{
+	var rand = Math.random();
+	if ((rand > .96) && (rand < .999))
+	{
+		//wander close
+		dirs = GetRandomDirs();
+		for (var i = 0; i < dirs.length; i++)
+		{
+			moreDirs = GetRandomDirs();
+			for (var j = 0; j < dirs.length; j++)
+			{
+				wanderPos = DirectionToPosition(moreDirs[j], DirectionToPosition(dirs[i], this.pos));
+			try
+			{
+				if (MapBoundsCheck(wanderPos) && Map[wanderPos.y][wanderPos.x].walkable)
+				{
+					this.moveTo = wanderPos;
+					break;
+				}
+			}
+			catch(e)
+			{
+				console.error(wanderPos);
+			}
+			if (this.moveTo) break;
+			}
+		}
+	}
+	if (rand > .999)
+	{
+		//TODO
+		//wander far
+	}
+}
+
 Agent.prototype.tick = function()
 {
 	//If agent has something to build, determine target position relative to object to be built and path there
@@ -265,12 +309,22 @@ Agent.prototype.tick = function()
 			}
 			if (!hasBuilder)
 			{
+				ValidateConstructionArrayObject(ConstructionSites[i]);
 				sites.push(ConstructionSites[i].pos)
 			}
 		}
 		//If there is an array of construction sites, sort it by distance and assign the agent to the closest site
 		if (sites.length > 0)
 		{
+			//debug
+			for (var i = 0; i < sites.length; i ++)
+			{
+				if (Map[sites[i].y][sites[i].x].type == Empty) 
+				{
+					console.log(sites[i])
+				}
+			}
+
 			if (sites.length == 1)
 			{
 				this.build = Map[sites[0].y][sites[0].x];
@@ -291,7 +345,12 @@ Agent.prototype.tick = function()
 	{
 		this.moveTo = null;
 	}
+	if (!this.moveTo)
+	{
+		this.wander();
+	}
 }
+
 
 //An object representing a construction marker or a partially constructed object
 function UnderConstruction()
@@ -308,7 +367,13 @@ UnderConstruction.prototype.description = "something being built";
 UnderConstruction.prototype.currWorkUnits = null; 
 UnderConstruction.prototype.workUnitsToBuild = null; 
 UnderConstruction.prototype.onCompletion = null; 
-UnderConstruction.prototype.onDelete = function()
+
+UnderConstruction.prototype.init = function()
+{
+	ConstructionSites.push(this);
+}
+
+UnderConstruction.prototype.destroy = function()
 {
 	RemoveObjectFromArray(this, ConstructionSites);
 	//Remove construction site from agent build assignments
@@ -320,6 +385,7 @@ UnderConstruction.prototype.onDelete = function()
 		}
 	}
 }
+
 UnderConstruction.prototype.tick = function()
 {
 	if (this.currWorkUnits >= this.workUnitsToBuild)
@@ -586,6 +652,21 @@ function DirectionToPosition(dir, pos)
 	return nextPos;
 }
 
+//For a position, return true if the position is inside the map
+function MapBoundsCheck(pos)
+{
+	try 
+	{
+		if ((pos.y < 0) || (pos.y > (Map.length - 1))) return false;
+		if ((pos.x < 0) || (pos.x > (Map[pos.y].length - 1))) return false;
+	}
+	catch (e)
+	{
+		throw new Error("Error in map bounds check");
+	}
+	return true;
+}
+
 //For a map, return an array of directions representing a path from start to end. If no path, return false.
 function Pathflinder(originalMap,start,end)
 {
@@ -664,6 +745,24 @@ function SortPositionsByDistance(map, startPos, endPosArray)
 
 //Game functions
 
+function ValidateConstructionArrayObject(object)
+{
+	for (var i = 0; i < ConstructionSites.length; i++)
+	{
+		if (ConstructionSites[i] == object)
+		{
+			if (Map[object.pos.y][object.pos.x].type == Empty)
+			{
+				console.error(object, "is in array but not map");
+			}
+		}
+		else
+		{
+			console.error(object, "is not in array");
+		}
+	}
+}
+
 //Locates object in an array, and removes it
 function RemoveObjectFromArray(object, array)
 {
@@ -710,16 +809,16 @@ function ClearMapTile(y, x)
 	{
 		for (var i = 0; i < Map[y][x].contents.length; i++)
 		{
-			if (Map[y][x].contents[i].onDelete)
+			if (Map[y][x].contents[i].destroy)
 			{
-				Map[y][x].contents[i].onDelete();
+				Map[y][x].contents[i].destroy();
 			}
 		}
 		Map[y][x].contents = [];
 	}
-	if (Map[y][x].onDelete)
+	if (Map[y][x].destroy)
 	{
-		Map[y][x].onDelete();
+		Map[y][x].destroy();
 	}
 	var empty = new Empty;
 	empty.pos(y, x);
@@ -735,7 +834,7 @@ function MutateMapObject(oldObject, newObject)
 	mutated.pos.y = y;
 	mutated.pos.x = x;
 	mutated.contents = oldObject.contents;
-	if (oldObject.onDelete) oldObject.onDelete();
+	if (oldObject.destroy) oldObject.destroy();
 	Map[y][x] = mutated;
 }
 
@@ -750,8 +849,8 @@ function BuildObject(object, y, x)
 		constructionSite.currWorkUnits = 0;
 		constructionSite.workUnitsToBuild = object.prototype.workUnitsToBuild;
 		constructionSite.onCompletion = object;
+		constructionSite.init();
 		Map[y][x] = constructionSite;
-		ConstructionSites.push(constructionSite);
 	}
 }
 
@@ -916,13 +1015,13 @@ function DrawTile(screenPos, mapTile)
 //Execute all dynamic object functions
 function RunFrame()
 {
-	for (var i = 0; i < Agents.length; i++)
-	{
-		Agents[i].tick();
-	}
 	for (var i = 0; i < ConstructionSites.length; i++)
 	{
 		ConstructionSites[i].tick();
+	}
+	for (var i = 0; i < Agents.length; i++)
+	{
+		Agents[i].tick();
 	}
 }
 
