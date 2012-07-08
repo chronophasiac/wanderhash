@@ -1,6 +1,10 @@
 //Test functions
 
-//Convert ASCII art to a 2D array
+/**
+ * Convert ASCII art to a 2D array.
+ * @param {Array.<string>} map strings representing the map
+ * @return {Array.<Array.<MapObject>>} 2D array of MapObjects
+ */
 function AsciiArtToMap(map)
 {
 	var mapColumnArray = [];
@@ -14,21 +18,19 @@ function AsciiArtToMap(map)
 			{
 				case " ":
 					tile = new Empty;
-					tile.pos(iy,ix);
+					tile.setPos(iy,ix);
 					break;
 				case "#":
 					tile = new Wall;
-					tile.pos(iy,ix);
+					tile.setPos(iy,ix);
 					break;
 				case "@":
 					tile = new Empty;
-					tile.pos(iy,ix);
+					tile.setPos(iy,ix);
 					tile.contents = new Agent;
 					break;
 				default:
-					tile = new Empty;
-					tile.pos(iy,ix);
-					console.log("AsciiArtToMap error");
+					throw Error("AsciiArtToMap error");
 					break;
 			}
 			mapRowArray.push(tile);
@@ -38,7 +40,10 @@ function AsciiArtToMap(map)
 	return mapColumnArray;
 }
 
-//Convert a 2D array to a human readable ASCII map
+/**
+ * Convert a 2D array to a human readable ASCII map and print on the page
+ * @param {Array.<Array.<MapObject>>} map  2D array of MapObjects
+ */
 function MapToAsciiArt(map)
 {
 	var mapColumnString = [];
@@ -48,7 +53,7 @@ function MapToAsciiArt(map)
 		for (var ix = 0; ix < map[iy].length; ix++)
 		{
 			var contents;
-			switch (map[iy][ix])
+			switch (map[iy][ix].type)
 			{
 				case Empty:
 					contents = " ";
@@ -61,19 +66,22 @@ function MapToAsciiArt(map)
 					break;
 				default:
 					contents = Empty;
-					console.log("MapToAsciiArt error");
+					throw Error("MapToAsciiArt error");
 					break;
 			}
 			mapRowString.push(contents);
 		}
 		mapRowString.push("\n");
 		mapRowString = mapRowString.join("")
-		mapColumnString.push(mapRowString);
+			mapColumnString.push(mapRowString);
 	}
-	console.log(mapColumnString.join(""));
+	$(TextBox).text(mapColumnString.join(""));
 }
 
-//A small map for dev use
+/**
+ * A small map for dev use
+ * @return {Array.<string>} map  strings representing the map
+ */
 function TestMap()
 {
 	var map = [
@@ -86,85 +94,205 @@ function TestMap()
 	"# # #  ############   #",
 	"# # #      #          #",
 	"#   ######   #        #",
-	"#######################",
+	"#######################"
 	];
-	var start = {x:1, y:2};
-	var end = {x:8, y:5};
-	return {map:map, start:start, end:end};
+	return map;
 }
 
 
 //Initialize
 
+/**
+ * An array containing all Agents on the map
+ * @type {Array.<Agent>}
+ */
 var Agents = [];
+
+/**
+ * An array containing all UnderConstructions on the map
+ * @type {Array.<UnderConstruction>}
+ */
 var ConstructionSites = [];
 
-//The parent class for any object that is displayed on the main screen
+/**
+ * The parent class for any object that is displayed on the main screen
+ * @constructor
+ */
 function MapObject()
 {
 	this.contents = [];
 	this.effect = null;
 }
 
-MapObject.prototype.pos = function(y, x)
+/**
+ * Sets the position of a MapObject
+ * @param {number} y position on the y axis
+ * @param {number} x position on the x axis
+ */
+MapObject.prototype.setPos = function(y, x)
 {
 	this.pos = 
 	{
 		y: y,
-		x: x,
+		x: x
 	}
 }
 
-//An object representing a floor, and nothing else
+/**
+ * An object representing a floor, and nothing else
+ * @constructor
+ */
 function Empty()
 {
 	MapObject.call(this)
 }
+/**
+ * Empty inherits from MapObject
+ * @type {MapObject}
+ */
 Empty.prototype = new MapObject();
+/**
+ * Set constructor because of inheritence
+ * @type {Empty}
+ */
 Empty.prototype.constructor = Empty;
+/**
+ * Name of CSS style to represent the tile
+ * @type {string}
+ */
 Empty.prototype.appearance = "empty";
+/**
+ * Value used for flow control in other functions
+ * @type {function()}
+ */
 Empty.prototype.type = Empty;
+/**
+ * Is object traversable?
+ * @type {boolean}
+ */
 Empty.prototype.walkable = true;
+/**
+ * Can other map tiles be placed on object?
+ * @type {boolean}
+ */
 Empty.prototype.placeOn = true;
+/**
+ * String for inspection tool
+ * @type {string}
+ */
 Empty.prototype.description = "empty space";
+/**
+ * Cost of object
+ * @type {number}
+ */
 Empty.prototype.workUnitsToBuild = 500; 
 
-//An object representing a modular wall section
+/**
+ * An object representing a modular wall section
+ * @constructor
+ */
 function Wall()
 {
 	MapObject.call(this)
 }
+/**
+ * Wall inherits from MapObject
+ * @type {MapObject}
+ */
 Wall.prototype = new MapObject();
+/**
+ * Set constructor because of inheritence
+ * @type {Wall}
+ */
 Wall.prototype.constructor = Wall;
+/**
+ * Name of CSS style to represent the tile
+ * @type {string}
+ */
 Wall.prototype.appearance = "wall";
+/**
+ * Value used for flow control in other functions
+ * @type {function()}
+ */
 Wall.prototype.type = Wall;
+/**
+ * Is object traversable?
+ * @type {boolean}
+ */
 Wall.prototype.walkable = false;
+/**
+ * String for inspection tool
+ * @type {string}
+ */
 Wall.prototype.description = "wall";
+/**
+ * Cost of object
+ * @type {number}
+ */
 Wall.prototype.workUnitsToBuild = 500;
 
-
-//A basic creature
+/**
+ * A basic creature
+ * @constructor
+ */
 function Agent()
 {
 	MapObject.call(this);
 	this.moveTo = null;
 }
+/**
+ * Empty inherits from MapObject
+ * @type {MapObject}
+ */
 Agent.prototype = new MapObject();
+/**
+ * Set constructor because of inheritence
+ * @type {Agent}
+ */
 Agent.prototype.constructor = Agent;
+/**
+ * Name of CSS style to represent the tile
+ * @type {string}
+ */
 Agent.prototype.appearance = "agent";
+/**
+ * Value used for flow control in other functions
+ * @type {function()}
+ */
 Agent.prototype.type = Agent;
+/**
+ * Is object selectable?
+ * @type {boolean}
+ */
 Agent.prototype.selectable = true;
+/**
+ * Is object selected?
+ * @type {boolean}
+ */
 Agent.prototype.selected = false;
-Agent.prototype.dynamicTracking = Agents;
+/**
+ * String for inspection tool
+ * @type {string}
+ */
 Agent.prototype.description = "sandwich maker";
+/**
+ * Object that agent is assigned to build, if any
+ * @type {?MapObject}
+ */
 Agent.prototype.build = null;
 
+/**
+ * Removes all references to the Agent
+ */
 Agent.prototype.destroy = function()
 {
 	RemoveObjectFromArray(this, Agents);
 	this.build = null;
 }
 
+/**
+ * Moves the Agent object one tile towards moveTo
+ */
 Agent.prototype.moveOneTile = function()
 {
 	var path = Pathflinder(Map,this.pos,this.moveTo);
@@ -174,6 +302,9 @@ Agent.prototype.moveOneTile = function()
 	}
 }
 
+/**
+ * Move the Agent one tile in a random direction if it is sharing the tile with another Agent
+ */
 Agent.prototype.unstack = function()
 {
 	var tileMates = Map[this.pos.y][this.pos.x].contents;
@@ -193,6 +324,9 @@ Agent.prototype.unstack = function()
 	}
 }
 
+/**
+ * Find a tile for the Agent to build an object from, then set it as moveTo. If agent is in position to build, add workUnits to the UnderConstruction object.
+ */
 Agent.prototype.moveToBuildSite = function()
 {
 	//Accumulate an array of valid build positions
@@ -241,43 +375,42 @@ Agent.prototype.moveToBuildSite = function()
 	}
 }
 
-//Move agent randomly if idle
+/**
+ * Move agent randomly if idle
+ */
 Agent.prototype.wander = function()
 {
 	var rand = Math.random();
 	if ((rand > .96) && (rand < .999))
 	{
 		//wander close
-		dirs = GetRandomDirs();
+		var dirs = GetRandomDirs();
 		for (var i = 0; i < dirs.length; i++)
 		{
-			moreDirs = GetRandomDirs();
+			var moreDirs = GetRandomDirs();
 			for (var j = 0; j < dirs.length; j++)
 			{
-				wanderPos = DirectionToPosition(moreDirs[j], DirectionToPosition(dirs[i], this.pos));
-			try
-			{
+				var wanderPos = DirectionToPosition(moreDirs[j], DirectionToPosition(dirs[i], this.pos));
 				if (MapBoundsCheck(wanderPos) && Map[wanderPos.y][wanderPos.x].walkable)
 				{
 					this.moveTo = wanderPos;
 					break;
 				}
-			}
-			catch(e)
-			{
-				console.error(wanderPos);
-			}
 			if (this.moveTo) break;
 			}
 		}
 	}
-	if (rand > .999)
+	//TODO
+	/*if (rand > .999)
 	{
-		//TODO
 		//wander far
 	}
+	*/
 }
 
+/**
+ * Executes all Agent behaviors
+ */
 Agent.prototype.tick = function()
 {
 	//If agent has something to build, determine target position relative to object to be built and path there
@@ -309,22 +442,12 @@ Agent.prototype.tick = function()
 			}
 			if (!hasBuilder)
 			{
-				ValidateConstructionArrayObject(ConstructionSites[i]);
 				sites.push(ConstructionSites[i].pos)
 			}
 		}
 		//If there is an array of construction sites, sort it by distance and assign the agent to the closest site
 		if (sites.length > 0)
 		{
-			//debug
-			for (var i = 0; i < sites.length; i ++)
-			{
-				if (Map[sites[i].y][sites[i].x].type == Empty) 
-				{
-					console.log(sites[i])
-				}
-			}
-
 			if (sites.length == 1)
 			{
 				this.build = Map[sites[0].y][sites[0].x];
@@ -351,28 +474,71 @@ Agent.prototype.tick = function()
 	}
 }
 
-
-//An object representing a construction marker or a partially constructed object
+/**
+ * An object representing a construction marker or a partially constructed object
+ * @constructor
+ */
 function UnderConstruction()
 {
 	MapObject.call(this);
 }
+/**
+ * UnderConstruction inherits from MapObject
+ * @type {MapObject}
+ */
 UnderConstruction.prototype = new MapObject();
+/**
+ * Set constructor because of inheritence
+ * @type {UnderConstruction}
+ */
 UnderConstruction.prototype.constructor = UnderConstruction;
+/**
+ * Is object traversable?
+ * @type {boolean}
+ */
 UnderConstruction.prototype.walkable = false;
+/**
+ * Value used for flow control in other functions
+ * @type {function()}
+ */
 UnderConstruction.prototype.type = UnderConstruction;
+/**
+ * Is object selectable?
+ * @type {boolean}
+ */
 UnderConstruction.prototype.selectable = false;
-UnderConstruction.prototype.dynamicTracking = ConstructionSites;
+/**
+ * String for inspection tool
+ * @type {string}
+ */
 UnderConstruction.prototype.description = "something being built";
+/**
+ * Tracks progression of object under construction
+ * @type {?number}
+ */
 UnderConstruction.prototype.currWorkUnits = null; 
+/**
+ * Cost of object
+ * @type {?number}
+ */
 UnderConstruction.prototype.workUnitsToBuild = null; 
+/**
+ * The result of a successful construction
+ * @type {?MapObject}
+ */
 UnderConstruction.prototype.onCompletion = null; 
 
+/**
+ * Add the UnderConstruction object to the array of all such objects
+ */
 UnderConstruction.prototype.init = function()
 {
 	ConstructionSites.push(this);
 }
 
+/**
+ * Remove all references to the UnderConstruction object.
+ */
 UnderConstruction.prototype.destroy = function()
 {
 	RemoveObjectFromArray(this, ConstructionSites);
@@ -386,6 +552,9 @@ UnderConstruction.prototype.destroy = function()
 	}
 }
 
+/**
+ * Execute all UnderConstruction behavior
+ */
 UnderConstruction.prototype.tick = function()
 {
 	if (this.currWorkUnits >= this.workUnitsToBuild)
@@ -418,9 +587,16 @@ UnderConstruction.prototype.tick = function()
 	}
 }
 
-var Picker = {};
-var Delete = {};
-var Inspector = {};
+/**
+ * Tool states for map interactions
+ * @enum {number}
+ */
+var Tool = 
+{
+	picker: 0,
+	deleter: 1,
+	inspector: 2
+}
 var WallSelector =
 {
 	appearance: "wall",
@@ -437,13 +613,13 @@ var AgentSelector =
 var PickerSelector =
 {
 	appearance: "picker",
-	select: Picker,
+	select: Tool.picker
 }
 
 var DeleteSelector =
 {
 	appearance: "delete",
-	select: Delete
+	select: Tool.deleter
 }
 
 var EmptySelector =
@@ -454,14 +630,13 @@ var EmptySelector =
 var InspectorSelector =
 {
 	appearance: "inspector",
-	select: Inspector
+	select: Tool.inspector
 }
 
 //Initialize the palette with the following items
 var PaletteItems = [AgentSelector, PickerSelector, InspectorSelector, DeleteSelector, WallSelector, EmptySelector];
 //And set the default active palette item
-var ActivePaletteItem = Agent;
-	ActivePaletteItem.y = 0;
+var ActivePaletteItem = 0;
 
 var SelectedObject =
 {
@@ -479,7 +654,7 @@ var TextBox = null;
 //Initialize the map, representing the entire game universe
 function InitMap()
 {
-	var devMap = AsciiArtToMap(TestMap().map);
+	var devMap = AsciiArtToMap(TestMap());
 	for(var iy = 0; iy < devMap.length; iy++)
 	{
 		var mapColumnArray = []
@@ -533,9 +708,9 @@ function InitPalette()
 		$(paletteRow).addClass(PaletteItems[iy].appearance);
 		Palette.push(paletteRow);
 	}
-	if (ActivePaletteItem)
+	if (ActivePaletteItem != null)
 	{
-		$(Palette[ActivePaletteItem.y]).addClass("paletteSelected");
+		$(Palette[ActivePaletteItem]).addClass("paletteSelected");
 	}
 }
 
@@ -616,7 +791,7 @@ function ReverseDir(dirname)
 		case "northwest":
 			return "southeast";
 		default:
-			console.log("ReverseDir error");
+			throw Error("ReverseDir error");
 			break;
 	}
 }
@@ -680,7 +855,7 @@ function Pathflinder(originalMap,start,end)
 	while (frontier.length > 0)
 	{
 		var dirs = GetRandomDirs();
-		for (i = 0; i < dirs.length; i++)
+		for (var i = 0; i < dirs.length; i++)
 		{
 			var dy = Getdy(dirs[i]);
 			var dx = Getdx(dirs[i]);
@@ -745,24 +920,6 @@ function SortPositionsByDistance(map, startPos, endPosArray)
 
 //Game functions
 
-function ValidateConstructionArrayObject(object)
-{
-	for (var i = 0; i < ConstructionSites.length; i++)
-	{
-		if (ConstructionSites[i] == object)
-		{
-			if (Map[object.pos.y][object.pos.x].type == Empty)
-			{
-				console.error(object, "is in array but not map");
-			}
-		}
-		else
-		{
-			console.error(object, "is not in array");
-		}
-	}
-}
-
 //Locates object in an array, and removes it
 function RemoveObjectFromArray(object, array)
 {
@@ -788,7 +945,7 @@ function AddToMap(object, y, x)
 			if (Map[y][x].placeOn && Map[y][x].contents.length == 0) 
 			{
 				var agent = new Agent;
-				agent.pos(y, x);
+				agent.setPos(y, x);
 				Map[y][x].contents.push(agent);
 				Agents.push(agent);
 			}
@@ -796,7 +953,7 @@ function AddToMap(object, y, x)
 		default:
 			{
 				var object = new object;
-				object.pos(y, x);
+				object.setPos(y, x);
 				Map[y][x] = object;
 			}
 	}
@@ -821,7 +978,7 @@ function ClearMapTile(y, x)
 		Map[y][x].destroy();
 	}
 	var empty = new Empty;
-	empty.pos(y, x);
+	empty.setPos(y, x);
 	Map[y][x] = empty;
 }
 
@@ -831,8 +988,7 @@ function MutateMapObject(oldObject, newObject)
 	var mutated = new newObject;
 	var y = oldObject.pos.y;
 	var x = oldObject.pos.x;
-	mutated.pos.y = y;
-	mutated.pos.x = x;
+	mutated.setPos(y, x);
 	mutated.contents = oldObject.contents;
 	if (oldObject.destroy) oldObject.destroy();
 	Map[y][x] = mutated;
@@ -845,7 +1001,7 @@ function BuildObject(object, y, x)
 	if (Map[y][x].contents.length == 0 && (Map[y][x].type != test.type))
 	{
 		var constructionSite = new UnderConstruction;
-		constructionSite.pos(y, x);
+		constructionSite.setPos(y, x);
 		constructionSite.currWorkUnits = 0;
 		constructionSite.workUnitsToBuild = object.prototype.workUnitsToBuild;
 		constructionSite.onCompletion = object;
@@ -906,9 +1062,9 @@ function InspectMapTile(y, x)
 //Depending on what palette item is active, apply various effects to the map when clicked
 function MapInteract(y, x)
 {
-	switch (ActivePaletteItem)
+	switch (PaletteItems[ActivePaletteItem].select)
 	{
-		case Picker:
+		case Tool.picker:
 			if (Map[y][x].contents.length >= 1)
 			{
 				if (SelectedObject.curr)
@@ -925,18 +1081,23 @@ function MapInteract(y, x)
 				SelectedObject.curr.moveTo = {y: y, x: x};
 			}
 			break;
-		case Delete:
+		case Tool.deleter:
 			ClearMapTile(y, x);
 			break;
-		case Inspector:
+		case Tool.inspector:
 			InspectMapTile(y, x);
 			break;
 		case Agent:
-			AddToMap(ActivePaletteItem, y, x);
+			AddToMap(Agent, y, x);
+			break;
+		case Wall:
+			BuildObject(Wall, y, x);
+			break;
+		case Empty:
+			BuildObject(Empty, y, x);
 			break;
 		default:
-			BuildObject(ActivePaletteItem, y, x);
-			break;
+				throw Error("Error in MapInteract");
 	}
 }
 
@@ -944,11 +1105,9 @@ function MapInteract(y, x)
 function SetActivePaletteItem(y)
 {
 	var previtem = ActivePaletteItem;
-	previtem.y = ActivePaletteItem.y;
-	ActivePaletteItem = PaletteItems[y].select;
-	ActivePaletteItem.y = y;
-	$(Palette[ActivePaletteItem.y]).addClass("paletteSelected");
-	$(Palette[previtem.y]).removeClass("paletteSelected");
+	ActivePaletteItem = y;
+	$(Palette[ActivePaletteItem]).addClass("paletteSelected");
+	$(Palette[previtem]).removeClass("paletteSelected");
 }
 
 //On the map, draw one step from the path
