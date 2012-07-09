@@ -597,43 +597,71 @@ var Tool =
 	deleter: 1,
 	inspector: 2
 }
+
+/**
+ * Wall selector used by the palette
+ * @type {{appearance: string, select: function()}}
+ */
 var WallSelector =
 {
 	appearance: "wall",
 	select: Wall
 }
 
-//Selectors used by the palette
+/** 
+ * Agent selector used by the palette
+ * @type {{appearance: string, select: function()}}
+ */
 var AgentSelector =
 {
 	appearance: "agent",
 	select: Agent
 }
 
+/** 
+ * Picker selector used by the palette
+ * @type {{appearance: string, select: number}}
+ */
 var PickerSelector =
 {
 	appearance: "picker",
 	select: Tool.picker
 }
 
+/** 
+ * Deleter selector used by the palette
+ * @type {{appearance: string, select: number}}
+ */
 var DeleteSelector =
 {
 	appearance: "delete",
 	select: Tool.deleter
 }
 
+/** 
+ * Empty selector used by the palette
+ * @type {{appearance: string, select: function()}}
+ */
 var EmptySelector =
 {
 	appearance: "emptySelector",
 	select: Empty
 }
+
+/** 
+ * Inspector selector used by the palette
+ * @type {{appearance: string, select: number}}
+ */
 var InspectorSelector =
 {
 	appearance: "inspector",
 	select: Tool.inspector
 }
 
-//Initialize the palette with the following items
+/**
+ * Initialize the palette with the following items
+ * @type {Array.<Object>}
+ */
 var PaletteItems = [AgentSelector, PickerSelector, InspectorSelector, DeleteSelector, WallSelector, EmptySelector];
 //And set the default active palette item
 var ActivePaletteItem = 0;
