@@ -663,18 +663,39 @@ var InspectorSelector =
  * @type {Array.<Object>}
  */
 var PaletteItems = [AgentSelector, PickerSelector, InspectorSelector, DeleteSelector, WallSelector, EmptySelector];
-//And set the default active palette item
+
+/**
+ * Initial palette item
+ * @type {number}
+ */
 var ActivePaletteItem = 0;
 
+/**
+ * Tracks MapObject used by selector
+ * @type {{curr: ?MapObject, prev: ?MapObject}}
+ */
 var SelectedObject =
 {
 	curr: null,
 	prev: null
 }
 
+/**
+ * All directions
+ * @type {Array.<string>}
+ */
 var AllDirs = ["north", "northeast", "east", "southeast", "south", "southwest", "west", "northwest"];
 
+/**
+ * 2D array of MapObjects
+ * @type {Array.<Array.<MapObject>>}
+ */
 var Map = [];
+
+/**
+ * 2D array of MapObjects
+ * @type {Array.<Array.<MapObject>>}
+ */
 var Screen = [];
 var Palette = [];
 var TextBox = null;
