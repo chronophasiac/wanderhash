@@ -700,8 +700,10 @@ var Screen = [];
 var Palette = [];
 var TextBox = null;
 
-//Initialize the map, representing the entire game universe
-function InitMap()
+/**
+ * Initialize the map, representing the entire game universe
+ */
+//function InitMap()
 {
 	var devMap = AsciiArtToMap(TestMap());
 	for(var iy = 0; iy < devMap.length; iy++)
@@ -715,7 +717,9 @@ function InitMap()
 	}
 }
 
-//Initialize the main screen, a view on the map
+/**
+ * Initialize the main screen, a view on the map
+ */
 function InitScreen()
 {
 	for(var iy = 0; iy < Map.length; iy++)
@@ -740,7 +744,9 @@ function InitScreen()
 	}
 }
 
-//Initialize a palette to select how to interact with the main screen
+/**
+ * Initialize a palette to select how to interact with the main screen
+ */
 function InitPalette()
 {
 	for (var iy = 0; iy < PaletteItems.length; iy++)
@@ -763,7 +769,9 @@ function InitPalette()
 	}
 }
 
-//Initialize the text box which provides textual feedback
+/**
+ * Initialize the text box which provides textual feedback
+ */
 function InitTextBox()
 {
 	TextBox = $('<div class="textRow"></div>');
@@ -774,13 +782,22 @@ function InitTextBox()
 
 //Pathfinding functions
 
-//Used by the sorting function to keep the frontier sorted
+/**
+ * Used by the sorting function to keep the frontier sorted
+ * @param {number} a first number to compare
+ * @param {number} b second number to compare
+ * @return {number} the difference
+ */
 function CompareDist(a,b)
 {
 	return a.dist - b.dist;
 }
 
-//Convert an English word into coordinate differentials on the y axis
+/**
+ * Convert an English word into a translation on the y axis
+ * @param {string} dirname an English name for a direction
+ * @return {number} translation representing the English name
+ */
 function Getdy(dirname)
 {
 	switch (dirname)
@@ -799,7 +816,11 @@ function Getdy(dirname)
 	}
 }
 
-//Convert an English word into coordinate differentials on the x axis
+/**
+ * Convert an English word into a translation on the x axis
+ * @param {string} dirname an English name for a direction
+ * @return {number} translation representing the English name
+ */
 function Getdx(dirname)
 {
 	switch (dirname)
@@ -818,7 +839,11 @@ function Getdx(dirname)
 	}
 }
 
-//Return the opposite direction for an English direction
+/**
+ * Return the opposite direction for an English direction
+ * @param {string} dirname an English name for a direction
+ * @return {string} an English name for a direction
+ */
 function ReverseDir(dirname)
 {
 	switch (dirname)
@@ -845,7 +870,10 @@ function ReverseDir(dirname)
 	}
 }
 
-//Returns an array of randomized directions
+/*
+ * Returns an array of randomized directions
+ * @return {Array.<string>}
+ */
 function GetRandomDirs()
 {
 	var dirs = [];
