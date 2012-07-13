@@ -870,9 +870,9 @@ function ReverseDir(dirname)
 	}
 }
 
-/*
+/**
  * Returns an array of randomized directions
- * @return {Array.<string>}
+ * @return {Array.<string>} An array of randomized directions
  */
 function GetRandomDirs()
 {
@@ -895,7 +895,12 @@ function GetRandomDirs()
 	return randomDirs;
 }
 
-//Return the x and y value for a position when it is transformed by a direction
+/**
+ * Return the x and y value for a position when it is translated by a direction
+ * @param {string} dir An English name for a direction
+ * @param {{y: number, x: number}} pos A position on the Map
+ * @return {{y: number, x: number}} The position after translation
+ */
 function DirectionToPosition(dir, pos)
 {
 	var dy = Getdy(dir);
@@ -904,7 +909,11 @@ function DirectionToPosition(dir, pos)
 	return nextPos;
 }
 
-//For a position, return true if the position is inside the map
+/**
+ * For a position, return true if the position is inside the map
+ * @param {{y: number, x: number}} pos A position on the Map
+ * @return {boolean} True of the position is inside the map
+ */
 function MapBoundsCheck(pos)
 {
 	try 
@@ -919,7 +928,13 @@ function MapBoundsCheck(pos)
 	return true;
 }
 
-//For a map, return an array of directions representing a path from start to end. If no path, return false.
+/**
+ * For a map, return an array of directions representing a path from start to end. If no path, return false.
+ * @param {Array.<Array.<MapObject>>} originalMap The game map
+ * @param {{y: number, x: number}} start The start position on the Map
+ * @param {{y: number, x: number}} end The end position on the Map
+ * @return {(boolean|Array.<string>)} False, or an array of directions forming a path from start to end
+ */
 function Pathflinder(originalMap,start,end)
 {
 	var map = [];
