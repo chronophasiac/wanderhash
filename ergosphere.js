@@ -989,8 +989,13 @@ function Pathflinder(originalMap,start,end)
 	return path;
 }
 
-//Takes a map, a starting position, and an array of end positions. 
-//Returns an array of reachable end positions and the distance to each position
+/**
+ * Takes a map, a starting position, and an array of end positions. Returns a sorted array of reachable end positions and the distance to each position.
+ * @param {Array.<Array.<MapObject>>} map The game map
+ * @param {{y: number, x: number}} startPos The start position on the Map
+ * @param {Array.<{y: number, x: number}>} endPosArray An array of end positions
+ * @return {Array.<{y: number, x: number, dist: number}>} endPosArray A sorted array of end positions with distances
+ */
 function SortPositionsByDistance(map, startPos, endPosArray)
 {
 	for (var i = 0; i < endPosArray.length; i++)
