@@ -141,6 +141,7 @@ MapObject.prototype.setPos = function(y, x)
 /**
  * An object representing a floor, and nothing else
  * @constructor
+ * @extends MapObject
  */
 function Empty()
 {
@@ -151,11 +152,6 @@ function Empty()
  * @type {MapObject}
  */
 Empty.prototype = new MapObject();
-/**
- * Set constructor because of inheritence
- * @type {Empty}
- */
-Empty.prototype.constructor = Empty;
 /**
  * Name of CSS style to represent the tile
  * @type {string}
@@ -190,6 +186,7 @@ Empty.prototype.workUnitsToBuild = 500;
 /**
  * An object representing a modular wall section
  * @constructor
+ * @extends MapObject
  */
 function Wall()
 {
@@ -200,11 +197,6 @@ function Wall()
  * @type {MapObject}
  */
 Wall.prototype = new MapObject();
-/**
- * Set constructor because of inheritence
- * @type {Wall}
- */
-Wall.prototype.constructor = Wall;
 /**
  * Name of CSS style to represent the tile
  * @type {string}
@@ -234,6 +226,7 @@ Wall.prototype.workUnitsToBuild = 500;
 /**
  * A basic creature
  * @constructor
+ * @extends MapObject
  */
 function Agent()
 {
@@ -245,11 +238,6 @@ function Agent()
  * @type {MapObject}
  */
 Agent.prototype = new MapObject();
-/**
- * Set constructor because of inheritence
- * @type {Agent}
- */
-Agent.prototype.constructor = Agent;
 /**
  * Name of CSS style to represent the tile
  * @type {string}
@@ -350,7 +338,7 @@ Agent.prototype.moveToBuildSite = function()
 	{
 		for (var i = 0; i < destinationArray.length; i++)
 		{
-			if (IsTileVacant(destinationArray[i], this, Agent))
+			if (IsTileVacant(destinationArray[i], this))
 			{
 				var buildPos = destinationArray[i];
 				break;
@@ -477,6 +465,7 @@ Agent.prototype.tick = function()
 /**
  * An object representing a construction marker or a partially constructed object
  * @constructor
+ * @extends MapObject
  */
 function UnderConstruction()
 {
@@ -487,11 +476,6 @@ function UnderConstruction()
  * @type {MapObject}
  */
 UnderConstruction.prototype = new MapObject();
-/**
- * Set constructor because of inheritence
- * @type {UnderConstruction}
- */
-UnderConstruction.prototype.constructor = UnderConstruction;
 /**
  * Is object traversable?
  * @type {boolean}
@@ -703,7 +687,7 @@ var TextBox = null;
 /**
  * Initialize the map, representing the entire game universe
  */
-//function InitMap()
+function InitMap()
 {
 	var devMap = AsciiArtToMap(TestMap());
 	for(var iy = 0; iy < devMap.length; iy++)
@@ -784,8 +768,8 @@ function InitTextBox()
 
 /**
  * Used by the sorting function to keep the frontier sorted
- * @param {number} a first number to compare
- * @param {number} b second number to compare
+ * @param {{dist: number}} a first number to compare
+ * @param {{dist: number}} b second number to compare
  * @return {number} the difference
  */
 function CompareDist(a,b)
@@ -932,7 +916,7 @@ function MapBoundsCheck(pos)
  * For a map, return an array of directions representing a path from start to end. If no path, return false.
  * @param {Array.<Array.<MapObject>>} originalMap The game map
  * @param {{y: number, x: number}} start The start position on the Map
- * @param {{y: number, x: number}} end The end position on the Map
+ * @param {?{y: number, x: number}} end The end position on the Map
  * @return {(boolean|Array.<string>)} False, or an array of directions forming a path from start to end
  */
 function Pathflinder(originalMap,start,end)
@@ -1017,7 +1001,11 @@ function SortPositionsByDistance(map, startPos, endPosArray)
 
 //Game functions
 
-//Locates object in an array, and removes it
+/**
+ * Locates object in an array, and removes it
+ * @param {Object} object Object to be removed from array
+ * @param {Array.<{Object}>} array An array of objects
+ */
 function RemoveObjectFromArray(object, array)
 {
 	for (var i = 0; i < array.length; i++)
@@ -1033,30 +1021,35 @@ function RemoveObjectFromArray(object, array)
 	}
 }
 
-//Add an object to the map
+/**
+ * Add an object to the map
+ * @param {MapObject} object MapObject to be added to the map
+ * @param {number} y Position on the y axis
+ * @param {number} x Position on the x axis
+ */
 function AddToMap(object, y, x)
 {
-	switch (object)
+	if ((object.type) && (object.type == Agent))
 	{
-		case Agent:
-			if (Map[y][x].placeOn && Map[y][x].contents.length == 0) 
-			{
-				var agent = new Agent;
-				agent.setPos(y, x);
-				Map[y][x].contents.push(agent);
-				Agents.push(agent);
-			}
-			break;
-		default:
-			{
-				var object = new object;
-				object.setPos(y, x);
-				Map[y][x] = object;
-			}
+		if (Map[y][x].placeOn && Map[y][x].contents.length == 0) 
+		{
+			object.setPos(y, x);
+			Map[y][x].contents.push(object);
+			Agents.push(object);
+		}
+	}
+	else
+	{
+		object.setPos(y, x);
+		Map[y][x] = object;
 	}
 }
 
-//Clear objects from a map tile
+/**
+ * Clear objects from a map tile
+ * @param {number} y Position on the y axis
+ * @param {number} x Position on the x axis
+ */
 function ClearMapTile(y, x)
 {
 	if (Map[y][x].contents.length > 0)
@@ -1079,47 +1072,60 @@ function ClearMapTile(y, x)
 	Map[y][x] = empty;
 }
 
-//Mutate an object into another object
+/**
+ * Mutate an object into another object
+ * @param {MapObject} oldObject Object to be mutated
+ * @param {MapObject} newObject Object to mutate into
+ */
 function MutateMapObject(oldObject, newObject)
 {
-	var mutated = new newObject;
 	var y = oldObject.pos.y;
 	var x = oldObject.pos.x;
-	mutated.setPos(y, x);
-	mutated.contents = oldObject.contents;
+	newObject.setPos(y, x);
+	newObject.contents = oldObject.contents;
 	if (oldObject.destroy) oldObject.destroy();
-	Map[y][x] = mutated;
+	Map[y][x] = newObject;
 }
 
-//Instantiate a construction site object representing the object to be built
+/**
+ * Instantiate a construction site object representing the object to be built
+ * @param {MapObject} object Object to be built
+ * @param {number} y Position on the y axis
+ * @param {number} x Position on the x axis
+ */
 function BuildObject(object, y, x)
 {
-	var test = new object;
-	if (Map[y][x].contents.length == 0 && (Map[y][x].type != test.type))
+	if (Map[y][x].contents.length == 0 && (Map[y][x].type != object.type))
 	{
 		var constructionSite = new UnderConstruction;
 		constructionSite.setPos(y, x);
 		constructionSite.currWorkUnits = 0;
-		constructionSite.workUnitsToBuild = object.prototype.workUnitsToBuild;
+		constructionSite.workUnitsToBuild = object.workUnitsToBuild;
 		constructionSite.onCompletion = object;
 		constructionSite.init();
 		Map[y][x] = constructionSite;
 	}
 }
 
-//Takes a location and an object, and returns true if there are no check objects at the location, or if and only if the object is at the location. Returns false otherwise.
-function IsTileVacant(loc, thisObject, checkObject)
+/**
+ * Takes a location and an object, and returns true if there are no check objects at the location, or if and only if the object is at the location. Returns false otherwise.
+ * @param {{y: number, x: number}} loc Location on the map
+ * @param {MapObject} thisObject Object to check
+ * @return {boolean} True if there are no objects of thisObject type or if only thisObject is there. False otherwise.
+ */
+function IsTileVacant(loc, thisObject)
 {
 	var tile = Map[loc.y][loc.x];
 	if (tile.contents.length == 0) return true;
 	for (var i = 0; i < tile.contents.length; i++)
 	{
-		if ((tile.contents[i].type == checkObject) && (tile.contents[i] != thisObject)) return false;
+		if ((tile.contents[i].type == thisObject.type) && (tile.contents[i] != thisObject)) return false;
 	}
 	return true;
 }
 		
 //NOT USED: Calculate distance to all idle agents, to determine which to make the builder of an object
+/*
 function DistanceToIdleAgents(pos)
 {
 	var distances = [];
@@ -1136,8 +1142,13 @@ function DistanceToIdleAgents(pos)
 	}
 	return distances;
 }
+*/
 
-//Display the description for objects on a map tile
+/**
+ * Display the description for objects on a map tile
+ * @param {number} y Position on the y axis
+ * @param {number} x Position on the x axis
+ */ 
 function InspectMapTile(y, x)
 {
 	if (Map[y][x].contents.length > 0)
@@ -1156,7 +1167,11 @@ function InspectMapTile(y, x)
 	$(TextBox).text(tileStuff);
 }
 
-//Depending on what palette item is active, apply various effects to the map when clicked
+/**
+ * Depending on what palette item is active, apply various effects to the map when clicked
+ * @param {number} y Position on the y axis
+ * @param {number} x Position on the x axis
+ */
 function MapInteract(y, x)
 {
 	switch (PaletteItems[ActivePaletteItem].select)
@@ -1185,20 +1200,23 @@ function MapInteract(y, x)
 			InspectMapTile(y, x);
 			break;
 		case Agent:
-			AddToMap(Agent, y, x);
+			AddToMap(new Agent, y, x);
 			break;
 		case Wall:
-			BuildObject(Wall, y, x);
+			BuildObject(new Wall, y, x);
 			break;
 		case Empty:
-			BuildObject(Empty, y, x);
+			BuildObject(new Empty, y, x);
 			break;
 		default:
 				throw Error("Error in MapInteract");
 	}
 }
 
-//When a palette item is clicked, set a variable and draw selection effects
+/**
+ * When a palette item is clicked, set a variable and draw selection effects
+ * @param {number} y Palette row
+ */
 function SetActivePaletteItem(y)
 {
 	var previtem = ActivePaletteItem;
@@ -1207,7 +1225,13 @@ function SetActivePaletteItem(y)
 	$(Palette[previtem]).removeClass("paletteSelected");
 }
 
-//On the map, draw one step from the path
+/**
+ * On the map, draw one step from the path
+ * @param {(boolean|Array.<string>)} path An array of directions forming a path 
+ * @param {Array.<Array.<MapObject>>} map The game map
+ * @param {{y: number, x: number}} pos Position on x and y axes
+ * @param {MapObject} agent Agent to be drawn
+ */
 function DrawPath(path,map,pos,agent)
 {
 	var nextPos = DirectionToPosition(path[0], pos);
@@ -1228,7 +1252,11 @@ function UpdateScreen()
 	}
 }
 
-//Get class names from map coordinates and apply them to screen coordinates
+/**
+ * Get class names from map coordinates and apply them to screen coordinates
+ * @param {Object} screenPos JQuery object
+ * @param {MapObject} mapTile Object on the map
+ */
 function DrawTile(screenPos, mapTile)
 {
 	var screenPosClasses = $(screenPos).attr("class").split(" ");
