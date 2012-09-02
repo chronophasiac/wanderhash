@@ -1,3 +1,4 @@
+(function(){
 //Test functions
 
 /**
@@ -681,8 +682,21 @@ var Map = [];
  * @type {Array.<Array.<MapObject>>}
  */
 var Screen = [];
+
 var Palette = [];
 var TextBox = null;
+
+/**
+ * Screen size
+ * @type {number}
+ */
+var ScreenSizeY = 20;
+
+/**
+ * Screen size
+ * @type {number}
+ */
+var ScreenSizeX = 40;
 
 /**
  * Initialize the map, representing the entire game universe
@@ -690,12 +704,21 @@ var TextBox = null;
 function InitMap()
 {
 	var devMap = AsciiArtToMap(TestMap());
-	for(var iy = 0; iy < devMap.length; iy++)
+	for(var iy = 0; iy < 200; iy++)
 	{
-		var mapColumnArray = []
-		for(var ix = 0; ix < devMap[iy].length; ix++)
+		var mapColumnArray = [];
+		for(var ix = 0; ix < 200; ix++)
 		{
-			mapColumnArray.push(devMap[iy][ix]);
+			if (devMap[iy] && devMap[iy][ix])
+			{
+				mapColumnArray.push(devMap[iy][ix]);
+			}
+			else
+			{
+				var tile = new Empty;
+				tile.setPos(iy, ix);
+				mapColumnArray.push(tile);
+			}
 		}
 		Map.push(mapColumnArray)
 	}
@@ -706,13 +729,13 @@ function InitMap()
  */
 function InitScreen()
 {
-	for(var iy = 0; iy < Map.length; iy++)
+	for(var iy = 0; iy < ScreenSizeY; iy++)
 	{
 		var mapRow = $('<div class="mapRow"></div>', mapPos);
 		var mapPos = $("#Map");
 		mapRow.appendTo(mapPos)
 		var mapColumnArray = []
-		for(var ix = 0; ix < Map[iy].length; ix++)
+		for(var ix = 0; ix < ScreenSizeX; ix++)
 		{
 			var mapColumn = $('<div class="mapColumn"</div>', mapRow);
 			(function(iy, ix) {
@@ -1243,9 +1266,9 @@ function DrawPath(path,map,pos,agent)
 //Draw graphics on the screen
 function UpdateScreen()
 {
-	for(var iy = 0; iy < Map.length; iy++)
+	for(var iy = 0; iy < ScreenSizeY; iy++)
 	{
-		for(var ix = 0; ix < Map[iy].length; ix++)
+		for(var ix = 0; ix < ScreenSizeX; ix++)
 		{
 			DrawTile(Screen[iy][ix], Map[iy][ix])
 		}
@@ -1323,3 +1346,4 @@ InitScreen();
 InitPalette();
 InitTextBox();
 Tick();
+})();
