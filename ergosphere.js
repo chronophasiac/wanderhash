@@ -1,4 +1,3 @@
-(function(){
 //Test functions
 
 /**
@@ -574,7 +573,7 @@ UnderConstruction.prototype.tick = function()
 
 /**
  * Tool states for map interactions
- * @enum {number}
+ * @enum {number} Tool
  */
 var Tool = 
 {
@@ -585,7 +584,7 @@ var Tool =
 
 /**
  * Wall selector used by the palette
- * @type {{appearance: string, select: function()}}
+ * @type {{appearance: string, select: function()}} WallSelector
  */
 var WallSelector =
 {
@@ -595,7 +594,7 @@ var WallSelector =
 
 /** 
  * Agent selector used by the palette
- * @type {{appearance: string, select: function()}}
+ * @type {{appearance: string, select: function()}} AgentSelector
  */
 var AgentSelector =
 {
@@ -605,7 +604,7 @@ var AgentSelector =
 
 /** 
  * Picker selector used by the palette
- * @type {{appearance: string, select: number}}
+ * @type {{appearance: string, select: number}} PickerSelector
  */
 var PickerSelector =
 {
@@ -615,7 +614,7 @@ var PickerSelector =
 
 /** 
  * Deleter selector used by the palette
- * @type {{appearance: string, select: number}}
+ * @type {{appearance: string, select: number}} DeleteSelector
  */
 var DeleteSelector =
 {
@@ -625,7 +624,7 @@ var DeleteSelector =
 
 /** 
  * Empty selector used by the palette
- * @type {{appearance: string, select: function()}}
+ * @type {{appearance: string, select: function()}} EmptySelector
  */
 var EmptySelector =
 {
@@ -635,7 +634,7 @@ var EmptySelector =
 
 /** 
  * Inspector selector used by the palette
- * @type {{appearance: string, select: number}}
+ * @type {{appearance: string, select: number}} InspectorSelector
  */
 var InspectorSelector =
 {
@@ -645,19 +644,19 @@ var InspectorSelector =
 
 /**
  * Initialize the palette with the following items
- * @type {Array.<Object>}
+ * @type {Array.<Object>} PaletteItems
  */
 var PaletteItems = [AgentSelector, PickerSelector, InspectorSelector, DeleteSelector, WallSelector, EmptySelector];
 
 /**
  * Initial palette item
- * @type {number}
+ * @type {number} ActivePaletteItem
  */
 var ActivePaletteItem = 0;
 
 /**
  * Tracks MapObject used by selector
- * @type {{curr: ?MapObject, prev: ?MapObject}}
+ * @type {{curr: ?MapObject, prev: ?MapObject}} SelectedObject
  */
 var SelectedObject =
 {
@@ -667,19 +666,19 @@ var SelectedObject =
 
 /**
  * All directions
- * @type {Array.<string>}
+ * @type {Array.<string>} AllDirs
  */
 var AllDirs = ["north", "northeast", "east", "southeast", "south", "southwest", "west", "northwest"];
 
 /**
  * 2D array of MapObjects
- * @type {Array.<Array.<MapObject>>}
+ * @type {Array.<Array.<MapObject>>} Map
  */
 var Map = [];
 
 /**
  * 2D array of MapObjects
- * @type {Array.<Array.<MapObject>>}
+ * @type {Array.<Array.<MapObject>>} Screen
  */
 var Screen = [];
 
@@ -688,7 +687,7 @@ var TextBox = null;
 
 /**
  * Screen size
- * @type {number}
+ * @type {number} ScreenSizeY
  */
 var ScreenSizeY = 20;
 
@@ -697,6 +696,18 @@ var ScreenSizeY = 20;
  * @type {number}
  */
 var ScreenSizeX = 40;
+
+/**
+ * Screen offset
+ * @type {number}
+ */
+var ScreenOffsetY = 0;
+
+/**
+ * Screen offset
+ * @type {number}
+ */
+var ScreenOffsetX = 0;
 
 /**
  * Initialize the map, representing the entire game universe
@@ -1266,13 +1277,30 @@ function DrawPath(path,map,pos,agent)
 //Draw graphics on the screen
 function UpdateScreen()
 {
+	var screenPosY = ScreenOffsetY;
+	var screenPosX = ScreenOffsetX;
 	for(var iy = 0; iy < ScreenSizeY; iy++)
 	{
 		for(var ix = 0; ix < ScreenSizeX; ix++)
 		{
-			DrawTile(Screen[iy][ix], Map[iy][ix])
+			DrawTile(Screen[iy][ix], Map[screenPosY][screenPosX]);
+			screenPosX++;
 		}
+		screenPosX = ScreenOffsetX;
+		screenPosY++;
 	}
+}
+
+/**
+ * Pan the screen
+ * @param {number} yPan Pan y rows
+ * @param {number} xPan Pan x columns
+ */
+function PanScreen(yPan, xPan)
+{
+	ScreenOffsetY += yPan;
+	ScreenOffsetX += xPan;
+	UpdateScreen();
 }
 
 /**
@@ -1346,4 +1374,3 @@ InitScreen();
 InitPalette();
 InitTextBox();
 Tick();
-})();
